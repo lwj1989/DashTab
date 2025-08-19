@@ -11,9 +11,12 @@ class DashTab {
             theme: 'auto',
             sitesPerRow: 5,
             searchEngines: {},
-            defaultSearchEngine: 'google'
+            defaultSearchEngine: 'google',
+            searchOpenMode: 'current', // current 或 new
+            siteOpenMode: 'current'    // current 或 new
         };
-        this.currentGroup = 'all';
+        // 恢复保存的标签状态，默认为frequent
+        this.currentTag = localStorage.getItem('dashTabCurrentTag') || 'frequent';
         this.currentPage = 1;
         this.sitesPerPage = 30; // 每页显示的网站数量
         this.draggedSite = null;
@@ -67,8 +70,11 @@ class DashTab {
             // 开始时间更新
             this.startTimeUpdate();
             
-            // 初始化拖拽排序
-            this.initializeSortable();
+                    // 初始化拖拽排序
+        this.initializeSortable();
+        
+        // 初始化标签拖拽排序
+        this.initializeTagSortable();
             
             // 隐藏加载状态
             this.showLoading(false);
@@ -195,8 +201,8 @@ class DashTab {
         // 初始化搜索引擎下拉框
         this.updateSearchEngineSelect();
         
-        // 初始化分组筛选
-        this.updateGroupFilter();
+        // 初始化标签筛选
+        this.updateTagFilter();
         
         // 替换所有图标
         this.replaceAllIcons();
@@ -241,6 +247,21 @@ class DashTab {
         }
     }
     
+    // 初始化标签拖拽排序
+    initializeTagSortable() {
+        const tagFilter = document.getElementById('tag-filter');
+        if (tagFilter && window.DashTabLibs.Sortable) {
+            this.tagSortableInstance = window.DashTabLibs.utils.createSortable(tagFilter, {
+                animation: 200,
+                ghostClass: 'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                dragClass: 'sortable-drag',
+                filter: '.frequent-tab', // 最常访问标签不可拖拽
+                onEnd: (evt) => this.handleTagSortEnd(evt)
+            });
+        }
+    }
+    
     // 处理排序结束
     async handleSortEnd(evt) {
         try {
@@ -269,12 +290,58 @@ class DashTab {
         }
     }
     
+    // 处理标签排序结束
+    async handleTagSortEnd(evt) {
+        try {
+            const { oldIndex, newIndex } = evt;
+            if (oldIndex === newIndex) return;
+            
+            // 获取标签顺序
+            const tagElements = document.querySelectorAll('.tag-tab');
+            const tagOrder = Array.from(tagElements).map(tab => tab.dataset.group);
+            
+            // 保存标签顺序到设置中
+            this.settings.tagOrder = tagOrder;
+            
+            // 保存设置
+            await this.saveSettings();
+            
+            // 立即重新渲染标签筛选器以应用新顺序
+            this.applyTagOrder();
+            
+            this.showToast('标签顺序已更新', 'success');
+        } catch (error) {
+            console.error('标签排序失败:', error);
+            this.showToast('标签排序失败，请重试', 'error');
+        }
+    }
+    
+    // 应用标签排序
+    applyTagOrder() {
+        if (!this.settings.tagOrder) return;
+        
+        const container = document.getElementById('tag-filter');
+        if (!container) return;
+        
+        const tagElements = Array.from(container.querySelectorAll('.tag-tab'));
+        
+        // 按照保存的顺序重新排列标签
+        this.settings.tagOrder.forEach(tagKey => {
+            const tagElement = tagElements.find(el => el.dataset.group === tagKey);
+            if (tagElement) {
+                container.appendChild(tagElement);
+            }
+        });
+    }
+    
     // 获取用于排序的网站列表
     getFilteredSitesForSort() {
-        if (this.currentGroup === 'all') {
+        if (this.currentTag === 'all') {
             return this.data.sites;
+        } else if (this.currentTag === 'frequent') {
+            return this.getFrequentSites();
         } else {
-            return this.data.sites.filter(site => site.group === this.currentGroup);
+            return this.data.sites.filter(site => (site.tag || site.group) === this.currentTag);
         }
     }
     
@@ -317,14 +384,47 @@ class DashTab {
         });
         searchBtn?.addEventListener('click', () => this.performSearch());
         
-        // 分组筛选
-        const groupTabs = document.querySelectorAll('.group-tab');
-        groupTabs.forEach(tab => {
+        // 标签筛选
+        const tagTabs = document.querySelectorAll('.tag-tab');
+        tagTabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                const group = tab.dataset.group;
-                this.filterByGroup(group);
+                const tag = tab.dataset.group; // 保持使用data-group属性以兼容现有代码
+                this.filterByTag(tag);
             });
         });
+        
+        // 自定义标签输入
+        const tagSelect = document.getElementById('site-tag');
+        const customTagInput = document.getElementById('custom-tag-input');
+        
+        tagSelect?.addEventListener('change', () => {
+            if (tagSelect.value === 'custom') {
+                customTagInput.style.display = 'block';
+                customTagInput.focus();
+            } else {
+                customTagInput.style.display = 'none';
+                customTagInput.value = '';
+            }
+        });
+        
+        // 颜色选择器交互
+        const colorOptions = document.querySelectorAll('.color-option');
+        const colorInput = document.getElementById('site-color');
+        
+        colorOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                // 移除其他选中状态
+                colorOptions.forEach(opt => opt.classList.remove('active'));
+                // 设置当前选中
+                option.classList.add('active');
+                // 更新隐藏输入值
+                colorInput.value = option.dataset.color;
+            });
+        });
+        
+        // 取消按钮
+        const cancelAddBtn = document.getElementById('cancel-add-btn');
+        cancelAddBtn?.addEventListener('click', () => this.hideAddSiteModal());
         
         // 设置按钮
         const settingsBtn = document.getElementById('settings-btn');
@@ -358,6 +458,20 @@ class DashTab {
             this.render();
         });
         
+        // 搜索打开方式设置
+        const searchOpenModeSelect = document.getElementById('search-open-mode');
+        searchOpenModeSelect?.addEventListener('change', () => {
+            this.settings.searchOpenMode = searchOpenModeSelect.value;
+            this.saveSettings();
+        });
+        
+        // 网站打开方式设置
+        const siteOpenModeSelect = document.getElementById('site-open-mode');
+        siteOpenModeSelect?.addEventListener('change', () => {
+            this.settings.siteOpenMode = siteOpenModeSelect.value;
+            this.saveSettings();
+        });
+        
         // 分页控制
         const prevPageBtn = document.getElementById('prev-page');
         const nextPageBtn = document.getElementById('next-page');
@@ -377,6 +491,23 @@ class DashTab {
         exportBtn?.addEventListener('click', () => this.exportData());
         importBtn?.addEventListener('click', () => this.importData());
         resetBtn?.addEventListener('click', () => this.resetData());
+        
+        // 搜索引擎管理
+        const manageSearchEnginesBtn = document.getElementById('manage-search-engines');
+        const searchEngineModal = document.getElementById('search-engine-modal');
+        const closeSearchEngineBtn = document.getElementById('close-search-engine-btn');
+        const addSearchEngineForm = document.getElementById('add-search-engine-form');
+        
+        manageSearchEnginesBtn?.addEventListener('click', () => this.showSearchEngineModal());
+        closeSearchEngineBtn?.addEventListener('click', () => this.hideSearchEngineModal());
+        addSearchEngineForm?.addEventListener('submit', (e) => this.handleAddSearchEngine(e));
+        
+        // 搜索引擎模态框背景点击关闭
+        searchEngineModal?.addEventListener('click', (e) => {
+            if (e.target === searchEngineModal) {
+                this.hideSearchEngineModal();
+            }
+        });
         
         // 键盘快捷键
         document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
@@ -436,6 +567,13 @@ class DashTab {
         if (form) {
             form.reset();
             this.clearFormErrors();
+            
+            // 重置颜色选择器
+            const colorOptions = document.querySelectorAll('.color-option');
+            const colorInput = document.getElementById('site-color');
+            colorOptions.forEach(opt => opt.classList.remove('active'));
+            colorOptions[0]?.classList.add('active'); // 默认选中第一个
+            if (colorInput) colorInput.value = '#007aff';
         }
     }
     
@@ -451,9 +589,13 @@ class DashTab {
             // 更新设置值
             const themeSelect = document.getElementById('theme-select');
             const sitesPerRowSelect = document.getElementById('sites-per-row');
+            const searchOpenModeSelect = document.getElementById('search-open-mode');
+            const siteOpenModeSelect = document.getElementById('site-open-mode');
             
             if (themeSelect) themeSelect.value = this.settings.theme;
             if (sitesPerRowSelect) sitesPerRowSelect.value = this.settings.sitesPerRow;
+            if (searchOpenModeSelect) searchOpenModeSelect.value = this.settings.searchOpenMode || 'current';
+            if (siteOpenModeSelect) siteOpenModeSelect.value = this.settings.siteOpenMode || 'current';
         }
     }
     
@@ -474,11 +616,19 @@ class DashTab {
         
         const form = e.target;
         
+        const tagSelect = form.querySelector('#site-tag');
+        const customTagInput = form.querySelector('#custom-tag-input');
+        
+        let tag = tagSelect.value;
+        if (tag === 'custom' && customTagInput.value.trim()) {
+            tag = customTagInput.value.trim().toLowerCase();
+        }
+        
         const siteData = {
             name: form.querySelector('#site-name').value.trim(),
             url: form.querySelector('#site-url').value.trim(),
             color: form.querySelector('#site-color').value,
-            group: form.querySelector('#site-group').value
+            tag: tag
         };
         
         // 验证表单
@@ -496,7 +646,7 @@ class DashTab {
                 name: siteData.name,
                 url: this.normalizeUrl(siteData.url),
                 color: siteData.color,
-                group: siteData.group,
+                tag: siteData.tag,
                 icon: this.generateSiteIcon(siteData.name),
                 createdAt: Date.now(),
                 order: this.data.sites.length
@@ -554,9 +704,12 @@ class DashTab {
             isValid = false;
         }
         
-        // 验证分组
-        if (!data.group) {
-            this.showFormError('group-error', '请选择分组');
+        // 验证标签
+        if (!data.tag) {
+            this.showFormError('tag-error', '请选择标签');
+            isValid = false;
+        } else if (data.tag.length > 10) {
+            this.showFormError('tag-error', '标签名称不能超过10个字符');
             isValid = false;
         }
         
@@ -625,11 +778,19 @@ class DashTab {
         if (engine) {
             const searchUrl = engine.url.replace('%s', encodeURIComponent(query));
             
-            // 在当前标签页打开搜索结果
+            // 根据设置打开搜索结果
             if (typeof chrome !== 'undefined' && chrome.tabs) {
-                chrome.tabs.update({ url: searchUrl });
+                if (this.settings.searchOpenMode === 'new') {
+                    chrome.tabs.create({ url: searchUrl });
+                } else {
+                    chrome.tabs.update({ url: searchUrl });
+                }
             } else {
-                window.location.href = searchUrl;
+                if (this.settings.searchOpenMode === 'new') {
+                    window.open(searchUrl, '_blank');
+                } else {
+                    window.location.href = searchUrl;
+                }
             }
             
             // 清空搜索框
@@ -637,15 +798,18 @@ class DashTab {
         }
     }
     
-    // 按分组筛选
-    filterByGroup(group) {
-        this.currentGroup = group;
+    // 按标签筛选
+    filterByTag(tag) {
+        this.currentTag = tag;
         this.currentPage = 1;
         
-        // 更新分组标签状态
-        const groupTabs = document.querySelectorAll('.group-tab');
-        groupTabs.forEach(tab => {
-            if (tab.dataset.group === group) {
+        // 保存当前标签状态到本地存储
+        localStorage.setItem('dashTabCurrentTag', tag);
+        
+        // 更新标签状态
+        const tagTabs = document.querySelectorAll('.tag-tab');
+        tagTabs.forEach(tab => {
+            if (tab.dataset.group === tag) {
                 tab.classList.add('active');
             } else {
                 tab.classList.remove('active');
@@ -656,7 +820,10 @@ class DashTab {
         this.render();
         
         // 重新初始化拖拽排序
-        setTimeout(() => this.initializeSortable(), 100);
+        setTimeout(() => {
+            this.initializeSortable();
+            this.initializeTagSortable();
+        }, 100);
     }
     
     // 渲染页面
@@ -668,12 +835,19 @@ class DashTab {
     
     // 渲染网站
     renderSites() {
-        const frequentSites = this.getFrequentSites();
-        const allSites = this.getFilteredSites();
+        const sites = this.getFilteredSites();
         
-        this.renderFrequentSites(frequentSites);
-        this.renderAllSites(allSites);
-        this.renderEmptyState(allSites.length === 0);
+        if (this.currentTag === 'frequent') {
+            // 显示常用网站
+            this.renderFrequentSites(sites);
+            this.renderAllSites([]);
+            this.renderEmptyState(sites.length === 0);
+        } else {
+            // 显示普通网站列表
+            this.renderFrequentSites([]);
+            this.renderAllSites(sites);
+            this.renderEmptyState(sites.length === 0);
+        }
     }
     
     // 获取常用网站
@@ -695,9 +869,14 @@ class DashTab {
     getFilteredSites() {
         let sites = this.data.sites;
         
-        // 按分组筛选
-        if (this.currentGroup !== 'all') {
-            sites = sites.filter(site => site.group === this.currentGroup);
+        // 如果是常用标签，返回常用网站
+        if (this.currentTag === 'frequent') {
+            return this.getFrequentSites();
+        }
+        
+        // 按标签筛选
+        if (this.currentTag !== 'all') {
+            sites = sites.filter(site => (site.tag || site.group) === this.currentTag);
         }
         
         // 按order排序
@@ -717,7 +896,7 @@ class DashTab {
         
         if (!container || !section) return;
         
-        if (sites.length === 0) {
+        if (sites.length === 0 || this.currentTag !== 'frequent') {
             section.style.display = 'none';
             return;
         }
@@ -726,9 +905,22 @@ class DashTab {
         container.innerHTML = '';
         
         sites.forEach(site => {
-            const siteEl = this.createSiteElement(site, true);
+            const siteEl = this.createFrequentSiteElement(site);
             container.appendChild(siteEl);
         });
+    }
+    
+    // 创建常用网站元素（只显示名称）
+    createFrequentSiteElement(site) {
+        const div = document.createElement('div');
+        div.className = 'frequent-site-item';
+        div.dataset.siteId = site.id;
+        div.textContent = site.name;
+        
+        // 绑定事件
+        div.addEventListener('click', () => this.openSite(site));
+        
+        return div;
     }
     
     // 渲染所有网站
@@ -774,11 +966,19 @@ class DashTab {
         // 更新访问统计
         this.updateSiteVisitStats(site.id);
         
-        // 打开网站
+        // 根据设置打开网站
         if (typeof chrome !== 'undefined' && chrome.tabs) {
-            chrome.tabs.update({ url: site.url });
+            if (this.settings.siteOpenMode === 'new') {
+                chrome.tabs.create({ url: site.url });
+            } else {
+                chrome.tabs.update({ url: site.url });
+            }
         } else {
-            window.open(site.url, '_blank');
+            if (this.settings.siteOpenMode === 'new') {
+                window.open(site.url, '_blank');
+            } else {
+                window.location.href = site.url;
+            }
         }
     }
     
@@ -816,8 +1016,10 @@ class DashTab {
         const countEl = document.getElementById('sites-count');
         if (countEl) {
             let count = this.data.sites.length;
-            if (this.currentGroup !== 'all') {
-                count = this.data.sites.filter(site => site.group === this.currentGroup).length;
+            if (this.currentTag === 'frequent') {
+                count = this.getFrequentSites().length;
+            } else if (this.currentTag !== 'all') {
+                count = this.data.sites.filter(site => (site.tag || site.group) === this.currentTag).length;
             }
             countEl.textContent = count;
         }
@@ -834,8 +1036,10 @@ class DashTab {
         if (!paginationEl) return;
         
         let sites = this.data.sites;
-        if (this.currentGroup !== 'all') {
-            sites = sites.filter(site => site.group === this.currentGroup);
+        if (this.currentTag === 'frequent') {
+            sites = this.getFrequentSites();
+        } else if (this.currentTag !== 'all') {
+            sites = sites.filter(site => (site.tag || site.group) === this.currentTag);
         }
         
         const totalPages = Math.ceil(sites.length / this.sitesPerPage);
@@ -940,20 +1144,21 @@ class DashTab {
         });
     }
     
-    // 更新分组筛选
-    updateGroupFilter() {
-        const container = document.getElementById('group-filter');
+    // 更新标签筛选
+    updateTagFilter() {
+        const container = document.getElementById('tag-filter');
         if (!container) return;
         
-        // 获取已有的分组标签
-        const existingTabs = container.querySelectorAll('.group-tab');
+        // 获取已有的标签
+        const existingTabs = container.querySelectorAll('.tag-tab');
         
-        // 如果分组已存在，不需要重新创建
+        // 如果标签已存在，不需要重新创建
         if (existingTabs.length > 0) return;
         
-        // 创建分组标签
-        const groups = [
-            { key: 'all', name: '全部网站' },
+        // 创建标签
+        const tags = [
+            { key: 'frequent', name: '最常访问', icon: 'fire', special: true },
+            { key: 'all', name: '全部标签' },
             { key: 'work', name: '工作' },
             { key: 'study', name: '学习' },
             { key: 'dev', name: '开发' },
@@ -964,19 +1169,30 @@ class DashTab {
         
         container.innerHTML = '';
         
-        groups.forEach(group => {
-            const tab = document.createElement('div');
-            tab.className = 'group-tab';
-            if (group.key === 'all') {
-                tab.classList.add('active');
+        tags.forEach(tag => {
+            const tabElement = document.createElement('div');
+            tabElement.className = 'tag-tab';
+            if (tag.special) {
+                tabElement.classList.add('frequent-tab');
             }
-            tab.dataset.group = group.key;
-            tab.textContent = group.name;
+            if (tag.key === this.currentTag) {
+                tabElement.classList.add('active');
+            }
+            tabElement.dataset.group = tag.key;
             
-            tab.addEventListener('click', () => this.filterByGroup(group.key));
+            if (tag.icon) {
+                tabElement.innerHTML = `<i class="icon icon-${tag.icon}"></i> ${tag.name}`;
+            } else {
+                tabElement.textContent = tag.name;
+            }
             
-            container.appendChild(tab);
+            tabElement.addEventListener('click', () => this.filterByTag(tag.key));
+            
+            container.appendChild(tabElement);
         });
+        
+        // 应用保存的标签顺序
+        this.applyTagOrder();
     }
     
     // 显示消息提示
@@ -1085,15 +1301,22 @@ class DashTab {
         // 填充表单
         const nameInput = document.getElementById('site-name');
         const urlInput = document.getElementById('site-url');
-        const colorSelect = document.getElementById('site-color');
-        const groupSelect = document.getElementById('site-group');
-        const colorPreview = document.getElementById('color-preview');
+        const colorInput = document.getElementById('site-color');
+        const tagSelect = document.getElementById('site-tag');
         
         if (nameInput) nameInput.value = this.contextMenuSite.name;
         if (urlInput) urlInput.value = this.contextMenuSite.url;
-        if (colorSelect) colorSelect.value = this.contextMenuSite.color;
-        if (groupSelect) groupSelect.value = this.contextMenuSite.group;
-        if (colorPreview) colorPreview.style.backgroundColor = this.contextMenuSite.color;
+        if (colorInput) colorInput.value = this.contextMenuSite.color;
+        if (tagSelect) tagSelect.value = this.contextMenuSite.tag || this.contextMenuSite.group;
+        
+        // 更新颜色选择器状态
+        const colorOptions = document.querySelectorAll('.color-option');
+        colorOptions.forEach(opt => {
+            opt.classList.remove('active');
+            if (opt.dataset.color === this.contextMenuSite.color) {
+                opt.classList.add('active');
+            }
+        });
         
         // 修改表单提交处理为编辑模式
         const form = document.getElementById('add-site-form');
@@ -1102,7 +1325,7 @@ class DashTab {
         if (form && submitBtn) {
             form.dataset.editMode = 'true';
             form.dataset.editId = this.contextMenuSite.id;
-            submitBtn.innerHTML = window.DashTabIcons.getIcon('save', { size: 16 }) + ' 保存修改';
+            submitBtn.textContent = '保存修改';
         }
         
         // 显示模态框
@@ -1170,6 +1393,7 @@ class DashTab {
         if (e.key === 'Escape') {
             this.hideAddSiteModal();
             this.hideSettingsModal();
+            this.hideSearchEngineModal();
             this.hideContextMenu();
         }
         
@@ -1296,6 +1520,173 @@ class DashTab {
         document.body.removeChild(a);
         
         URL.revokeObjectURL(url);
+    }
+    
+    // 显示搜索引擎管理模态框
+    showSearchEngineModal() {
+        const modal = document.getElementById('search-engine-modal');
+        if (modal) {
+            modal.classList.add('show');
+            modal.style.display = 'flex';
+            
+            window.DashTabLibs.utils.addAnimation(modal, 'fadeIn');
+            
+            // 渲染搜索引擎列表
+            this.renderSearchEngineList();
+        }
+    }
+    
+    // 隐藏搜索引擎管理模态框
+    hideSearchEngineModal() {
+        const modal = document.getElementById('search-engine-modal');
+        if (modal) {
+            modal.classList.remove('show');
+            window.DashTabLibs.utils.addAnimation(modal, 'fadeOut', () => {
+                modal.style.display = 'none';
+            });
+        }
+        
+        // 清空表单
+        const form = document.getElementById('add-search-engine-form');
+        if (form) {
+            form.reset();
+        }
+    }
+    
+    // 渲染搜索引擎列表
+    renderSearchEngineList() {
+        const container = document.getElementById('search-engine-list');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        Object.entries(this.settings.searchEngines).forEach(([key, engine]) => {
+            const item = document.createElement('div');
+            item.className = 'search-engine-item';
+            
+            const isDefault = key === this.settings.defaultSearchEngine;
+            
+            item.innerHTML = `
+                <div class="engine-info">
+                    <div class="engine-name">${engine.name}</div>
+                    <div class="engine-url">${engine.url}</div>
+                </div>
+                <div class="engine-actions">
+                    ${isDefault ? 
+                        '<button class="engine-btn default">默认</button>' : 
+                        `<button class="engine-btn make-default" data-key="${key}">设为默认</button>`
+                    }
+                    <button class="engine-btn delete" data-key="${key}">删除</button>
+                </div>
+            `;
+            
+            container.appendChild(item);
+        });
+        
+        // 绑定事件
+        container.addEventListener('click', (e) => {
+            const target = e.target;
+            const key = target.dataset.key;
+            
+            if (target.classList.contains('make-default')) {
+                this.setDefaultSearchEngine(key);
+            } else if (target.classList.contains('delete')) {
+                this.deleteSearchEngine(key);
+            }
+        });
+    }
+    
+    // 处理添加搜索引擎
+    async handleAddSearchEngine(e) {
+        e.preventDefault();
+        
+        const form = e.target;
+        const name = form.querySelector('#engine-name').value.trim();
+        const url = form.querySelector('#engine-url').value.trim();
+        
+        if (!name || !url) {
+            this.showToast('请填写完整信息', 'error');
+            return;
+        }
+        
+        if (!url.includes('%s')) {
+            this.showToast('搜索URL必须包含 %s 占位符', 'error');
+            return;
+        }
+        
+        try {
+            // 生成唯一key
+            const key = name.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now();
+            
+            // 添加到设置
+            this.settings.searchEngines[key] = { name, url };
+            
+            // 保存设置
+            await this.saveSettings();
+            
+            // 重新渲染列表
+            this.renderSearchEngineList();
+            
+            // 更新搜索引擎下拉框
+            this.updateSearchEngineSelect();
+            
+            // 清空表单
+            form.reset();
+            
+            this.showToast(`搜索引擎"${name}"添加成功`, 'success');
+        } catch (error) {
+            console.error('添加搜索引擎失败:', error);
+            this.showToast('添加失败，请重试', 'error');
+        }
+    }
+    
+    // 设置默认搜索引擎
+    async setDefaultSearchEngine(key) {
+        try {
+            this.settings.defaultSearchEngine = key;
+            await this.saveSettings();
+            
+            // 重新渲染列表
+            this.renderSearchEngineList();
+            
+            // 更新搜索引擎下拉框
+            this.updateSearchEngineSelect();
+            
+            const engineName = this.settings.searchEngines[key].name;
+            this.showToast(`"${engineName}"已设为默认搜索引擎`, 'success');
+        } catch (error) {
+            console.error('设置默认搜索引擎失败:', error);
+            this.showToast('设置失败，请重试', 'error');
+        }
+    }
+    
+    // 删除搜索引擎
+    async deleteSearchEngine(key) {
+        const engine = this.settings.searchEngines[key];
+        if (!engine) return;
+        
+        if (key === this.settings.defaultSearchEngine) {
+            this.showToast('不能删除默认搜索引擎', 'error');
+            return;
+        }
+        
+        if (confirm(`确定要删除搜索引擎"${engine.name}"吗？`)) {
+            try {
+                delete this.settings.searchEngines[key];
+                await this.saveSettings();
+                
+                // 重新渲染列表
+                this.renderSearchEngineList();
+                
+                // 更新搜索引擎下拉框
+                this.updateSearchEngineSelect();
+                
+                this.showToast(`搜索引擎"${engine.name}"已删除`, 'success');
+            } catch (error) {
+                console.error('删除搜索引擎失败:', error);
+                this.showToast('删除失败，请重试', 'error');
+            }
+        }
     }
 }
 

@@ -43,7 +43,7 @@
                     <input type="text" id="search-input" placeholder="输入关键词进行搜索...">
                 </div>
                 <button class="search-btn" id="search-btn">
-                    <i class="icon icon-search"></i>
+                    搜索
                 </button>
             </div>
         </div>
@@ -53,34 +53,34 @@
             <div id="datetime">加载中...</div>
         </div>
 
-        <!-- 分组筛选 -->
-        <div class="group-filter" id="group-filter">
-            <div class="group-tab active" data-group="all">全部网站</div>
-            <div class="group-tab" data-group="work">工作</div>
-            <div class="group-tab" data-group="study">学习</div>
-            <div class="group-tab" data-group="dev">开发</div>
-            <div class="group-tab" data-group="design">设计</div>
-            <div class="group-tab" data-group="life">生活</div>
-            <div class="group-tab" data-group="entertainment">娱乐</div>
+        <!-- 标签筛选栏 - 顶部显著位置 -->
+        <div class="tag-filter-container">
+            <!-- 最常访问标签 - 置于首位 -->
+            <div class="tag-filter" id="tag-filter">
+                <div class="tag-tab frequent-tab active" data-group="frequent">
+                    <i class="icon icon-fire"></i> 最常访问
+                </div>
+                <div class="tag-tab" data-group="all">全部标签</div>
+                <div class="tag-tab" data-group="work">工作</div>
+                <div class="tag-tab" data-group="study">学习</div>
+                <div class="tag-tab" data-group="dev">开发</div>
+                <div class="tag-tab" data-group="design">设计</div>
+                <div class="tag-tab" data-group="life">生活</div>
+                <div class="tag-tab" data-group="entertainment">娱乐</div>
+            </div>
+        </div>
+
+        <!-- 最常访问区域 - 置顶显示 -->
+        <div class="frequent-section" id="frequent-section">
+            <div class="frequent-sites-list" id="frequent-sites">
+                <!-- 常用网站将通过JavaScript动态生成 -->
+            </div>
         </div>
 
         <!-- 网站展示区 -->
         <div class="sites-container">
-            <!-- 常用网站区 -->
-            <div class="frequent-section" id="frequent-section" style="display: none;">
-                            <h3 class="section-title">
-                <i class="icon icon-fire"></i> 最常访问
-            </h3>
-                <div class="frequent-sites" id="frequent-sites">
-                    <!-- 常用网站将通过JavaScript动态生成 -->
-                </div>
-            </div>
-
             <!-- 所有网站区 -->
             <div class="all-sites-section">
-                            <h3 class="section-title">
-                <i class="icon icon-grid"></i> 所有网站 (<span id="sites-count">0</span>)
-            </h3>
                 <div class="all-sites" id="all-sites">
                     <!-- 网站将通过JavaScript动态生成 -->
                 </div>
@@ -111,66 +111,86 @@
     <!-- 操作按钮 -->
     <div class="action-buttons">
         <div class="fab-btn settings" id="settings-btn" title="设置">
-            <i class="icon icon-cog"></i>
+            设置
         </div>
         <div class="fab-btn add" id="add-site-btn" title="添加网站">
-            <i class="icon icon-plus"></i>
+            添加
         </div>
     </div>
 
-    <!-- 添加网站表单 -->
+    <!-- 添加网站表单 - 美化版 -->
     <div class="modal" id="add-site-modal">
-        <div class="modal-content">
+        <div class="modal-content add-site-modal">
             <div class="modal-header">
                 <h3 class="modal-title">添加新网站</h3>
                 <button class="close-btn" id="close-modal-btn">
                     <i class="icon icon-times"></i>
                 </button>
             </div>
-            <form id="add-site-form">
-                <div class="form-group">
-                    <label for="site-name">网站名称 <span class="required">*</span></label>
-                    <input type="text" id="site-name" placeholder="输入网站名称，不超过16字" maxlength="16" required>
-                    <div class="error-message" id="name-error"></div>
-                </div>
-                <div class="form-group">
-                    <label for="site-url">网站地址 <span class="required">*</span></label>
-                    <input type="text" id="site-url" placeholder="https://example.com" required>
-                    <div class="error-message" id="url-error"></div>
-                </div>
-                <div class="form-group">
-                    <label for="site-color">选择颜色</label>
-                    <div class="color-picker-row">
-                        <div class="color-preview" id="color-preview" style="background-color: #c4a7e7;"></div>
-                        <select id="site-color">
-                            <option value="#c4a7e7">薰衣草紫</option>
-                            <option value="#f6c177">琥珀黄</option>
-                            <option value="#eb6f92">樱花粉</option>
-                            <option value="#9ccfd8">冰川蓝</option>
-                            <option value="#31748f">深湖蓝</option>
-                            <option value="#569cd6">天空蓝</option>
-                            <option value="#4ec9b0">翠绿色</option>
-                            <option value="#d73a49">红珊瑚</option>
-                        </select>
+            <div class="form-container">
+                <form id="add-site-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="site-name">网站名称 <span class="required">*</span></label>
+                            <input type="text" id="site-name" placeholder="输入网站名称，不超过16字" maxlength="16" required>
+                            <div class="error-message" id="name-error"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="site-url">网站地址 <span class="required">*</span></label>
+                            <input type="text" id="site-url" placeholder="https://example.com" required>
+                            <div class="error-message" id="url-error"></div>
+                        </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label for="site-group">分组 <span class="required">*</span></label>
-                    <select id="site-group" required>
-                        <option value="">请选择分组</option>
-                        <option value="work">工作</option>
-                        <option value="study">学习</option>
-                        <option value="dev">开发</option>
-                        <option value="design">设计</option>
-                        <option value="life">生活</option>
-                        <option value="entertainment">娱乐</option>
-                    </select>
-                    <div class="error-message" id="group-error"></div>
-                </div>
-                <button type="submit" class="submit-btn" id="submit-site-btn">
-                    <i class="icon icon-save"></i> 保存网站
-                </button>
-            </form>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="site-color">图标颜色</label>
+                            <div class="color-picker-modern">
+                                <div class="color-grid">
+                                    <div class="color-option active" data-color="#007aff" style="background-color: #007aff;" title="苹果蓝"></div>
+                                    <div class="color-option" data-color="#5856d6" style="background-color: #5856d6;" title="紫色"></div>
+                                    <div class="color-option" data-color="#af52de" style="background-color: #af52de;" title="紫红色"></div>
+                                    <div class="color-option" data-color="#ff2d92" style="background-color: #ff2d92;" title="粉红色"></div>
+                                    <div class="color-option" data-color="#ff3b30" style="background-color: #ff3b30;" title="红色"></div>
+                                    <div class="color-option" data-color="#ff9500" style="background-color: #ff9500;" title="橙色"></div>
+                                    <div class="color-option" data-color="#ffcc02" style="background-color: #ffcc02;" title="黄色"></div>
+                                    <div class="color-option" data-color="#34c759" style="background-color: #34c759;" title="绿色"></div>
+                                    <div class="color-option" data-color="#00c7be" style="background-color: #00c7be;" title="青绿色"></div>
+                                    <div class="color-option" data-color="#5ac8fa" style="background-color: #5ac8fa;" title="天蓝色"></div>
+                                    <div class="color-option" data-color="#8e8e93" style="background-color: #8e8e93;" title="灰色"></div>
+                                    <div class="color-option" data-color="#1c1c1e" style="background-color: #1c1c1e;" title="深色"></div>
+                                </div>
+                                <input type="hidden" id="site-color" value="#007aff">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="site-tag">标签分类 <span class="required">*</span></label>
+                            <div class="tag-input-container">
+                                <select id="site-tag" class="modern-select" required>
+                                    <option value="">请选择标签</option>
+                                    <option value="work">工作</option>
+                                    <option value="study">学习</option>
+                                    <option value="dev">开发</option>
+                                    <option value="design">设计</option>
+                                    <option value="life">生活</option>
+                                    <option value="entertainment">娱乐</option>
+                                    <option value="custom">创建新标签...</option>
+                                </select>
+                                <input type="text" id="custom-tag-input" placeholder="输入新标签名称" style="display: none;" maxlength="10">
+                            </div>
+                            <div class="error-message" id="tag-error"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="cancel-btn" id="cancel-add-btn">取消</button>
+                        <button type="submit" class="submit-btn" id="submit-site-btn">
+                            保存网站
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -184,43 +204,136 @@
                 </button>
             </div>
             <div class="settings-content">
-                <div class="setting-item">
-                    <label>主题模式</label>
-                    <select id="theme-select">
-                        <option value="auto">自动（跟随系统）</option>
-                        <option value="light">浅色模式</option>
-                        <option value="dark">深色模式</option>
-                    </select>
+                <!-- 外观设置 -->
+                <div class="settings-section">
+                    <h4 class="settings-section-title">外观设置</h4>
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <label>主题模式</label>
+                            <span class="setting-description">选择浅色或深色主题</span>
+                        </div>
+                        <div class="setting-control">
+                            <select id="theme-select" class="modern-select">
+                                <option value="auto">自动（跟随系统）</option>
+                                <option value="light">浅色模式</option>
+                                <option value="dark">深色模式</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <label>每行网站数量</label>
+                            <span class="setting-description">调整网站图标的排列密度</span>
+                        </div>
+                        <div class="setting-control">
+                            <select id="sites-per-row" class="modern-select">
+                                <option value="4">4个</option>
+                                <option value="5" selected>5个</option>
+                                <option value="6">6个</option>
+                                <option value="7">7个</option>
+                                <option value="8">8个</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
-                <div class="setting-item">
-                    <label>每行网站数量</label>
-                    <select id="sites-per-row">
-                        <option value="4">4个</option>
-                        <option value="5" selected>5个</option>
-                        <option value="6">6个</option>
-                        <option value="7">7个</option>
-                        <option value="8">8个</option>
-                    </select>
+
+                <!-- 搜索设置 -->
+                <div class="settings-section">
+                    <h4 class="settings-section-title">搜索设置</h4>
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <label>搜索打开方式</label>
+                            <span class="setting-description">选择搜索结果的打开方式</span>
+                        </div>
+                        <div class="setting-control">
+                            <select id="search-open-mode" class="modern-select">
+                                <option value="current">当前标签页</option>
+                                <option value="new">新标签页</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <label>网站打开方式</label>
+                            <span class="setting-description">选择点击网站图标的打开方式</span>
+                        </div>
+                        <div class="setting-control">
+                            <select id="site-open-mode" class="modern-select">
+                                <option value="current">当前标签页</option>
+                                <option value="new">新标签页</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-label">
+                            <label>搜索引擎管理</label>
+                            <span class="setting-description">添加、编辑或删除搜索引擎</span>
+                        </div>
+                        <div class="setting-control">
+                            <button class="modern-btn secondary" id="manage-search-engines">
+                                管理搜索引擎
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="setting-item">
-                    <label>搜索引擎管理</label>
-                    <button class="secondary-btn" id="manage-search-engines">
-                        <i class="icon icon-cog"></i> 管理搜索引擎
-                    </button>
-                </div>
-                <div class="setting-item">
-                    <label>数据管理</label>
-                    <div class="button-group">
-                        <button class="secondary-btn" id="export-data">
-                            <i class="icon icon-download"></i> 导出数据
+
+                <!-- 数据管理 -->
+                <div class="settings-section">
+                    <h4 class="settings-section-title">数据管理</h4>
+                    <div class="data-management-grid">
+                        <button class="data-btn export" id="export-data">
+                            <div class="data-btn-content">
+                                <span class="data-btn-title">导出数据</span>
+                                <span class="data-btn-desc">备份所有网站和设置</span>
+                            </div>
                         </button>
-                        <button class="secondary-btn" id="import-data">
-                            <i class="icon icon-upload"></i> 导入数据
+                        <button class="data-btn import" id="import-data">
+                            <div class="data-btn-content">
+                                <span class="data-btn-title">导入数据</span>
+                                <span class="data-btn-desc">恢复备份的数据</span>
+                            </div>
                         </button>
-                        <button class="danger-btn" id="reset-data">
-                            <i class="icon icon-trash"></i> 重置所有数据
+                        <button class="data-btn danger" id="reset-data">
+                            <div class="data-btn-content">
+                                <span class="data-btn-title">重置数据</span>
+                                <span class="data-btn-desc">清除所有数据</span>
+                            </div>
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 搜索引擎管理模态框 -->
+    <div class="modal" id="search-engine-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">搜索引擎管理</h3>
+                <button class="close-btn" id="close-search-engine-btn">
+                    <i class="icon icon-times"></i>
+                </button>
+            </div>
+            <div class="search-engine-content">
+                <div class="search-engine-list" id="search-engine-list">
+                    <!-- 搜索引擎列表将通过JavaScript动态生成 -->
+                </div>
+                <div class="add-search-engine">
+                    <h4>添加新搜索引擎</h4>
+                    <form id="add-search-engine-form">
+                        <div class="form-group">
+                            <label for="engine-name">搜索引擎名称 <span class="required">*</span></label>
+                            <input type="text" id="engine-name" placeholder="例如：Google" required maxlength="20">
+                        </div>
+                        <div class="form-group">
+                            <label for="engine-url">搜索URL <span class="required">*</span></label>
+                            <input type="text" id="engine-url" placeholder="例如：https://www.google.com/search?q=%s" required>
+                            <small class="form-help">使用 %s 作为搜索关键词的占位符</small>
+                        </div>
+                        <button type="submit" class="submit-btn">
+                            添加搜索引擎
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
