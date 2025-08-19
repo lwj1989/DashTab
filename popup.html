@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DashTab - 导航扩展</title>
+    <!-- 加载打包后的库 -->
+    <link rel="stylesheet" href="libs/style.css">
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <!-- 加载状态 -->
+    <div id="loading" class="loading-overlay">
+        <div class="loading-spinner">
+            <i class="icon icon-compass icon-spin"></i>
+            <p>正在加载...</p>
+        </div>
+    </div>
+
+    <!-- 网站主体 -->
+    <div class="container">
+        <!-- 头部区域 -->
+        <div class="header">
+            <div class="logo">
+                <i class="icon icon-compass"></i> 
+                <span>我的导航站</span>
+            </div>
+        </div>
+
+        <!-- 搜索区域 -->
+        <div class="search-container">
+            <div class="search-form">
+                <div class="search-engine">
+                    <select id="search-engine">
+                        <option value="google">Google</option>
+                        <option value="baidu">百度</option>
+                        <option value="bing">必应</option>
+                        <option value="zhihu">知乎</option>
+                        <option value="github">GitHub</option>
+                    </select>
+                </div>
+                <div class="search-input">
+                    <input type="text" id="search-input" placeholder="输入关键词进行搜索...">
+                </div>
+                <button class="search-btn" id="search-btn">
+                    <i class="icon icon-search"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 时间区域 -->
+        <div class="time-container">
+            <div id="datetime">加载中...</div>
+        </div>
+
+        <!-- 分组筛选 -->
+        <div class="group-filter" id="group-filter">
+            <div class="group-tab active" data-group="all">全部网站</div>
+            <div class="group-tab" data-group="work">工作</div>
+            <div class="group-tab" data-group="study">学习</div>
+            <div class="group-tab" data-group="dev">开发</div>
+            <div class="group-tab" data-group="design">设计</div>
+            <div class="group-tab" data-group="life">生活</div>
+            <div class="group-tab" data-group="entertainment">娱乐</div>
+        </div>
+
+        <!-- 网站展示区 -->
+        <div class="sites-container">
+            <!-- 常用网站区 -->
+            <div class="frequent-section" id="frequent-section" style="display: none;">
+                            <h3 class="section-title">
+                <i class="icon icon-fire"></i> 最常访问
+            </h3>
+                <div class="frequent-sites" id="frequent-sites">
+                    <!-- 常用网站将通过JavaScript动态生成 -->
+                </div>
+            </div>
+
+            <!-- 所有网站区 -->
+            <div class="all-sites-section">
+                            <h3 class="section-title">
+                <i class="icon icon-grid"></i> 所有网站 (<span id="sites-count">0</span>)
+            </h3>
+                <div class="all-sites" id="all-sites">
+                    <!-- 网站将通过JavaScript动态生成 -->
+                </div>
+            </div>
+
+            <!-- 空状态 -->
+            <div class="empty-state" id="empty-state">
+                <i class="icon icon-bookmark" style="font-size: 48px; color: var(--text-secondary); margin-bottom: 20px;"></i>
+                <h3>还没有添加任何网站</h3>
+                <p>点击右下角的"+"按钮添加您的第一个网站</p>
+            </div>
+        </div>
+
+        <!-- 分页控制 -->
+        <div class="pagination-controls" id="pagination-controls" style="display: none;">
+            <button class="page-btn" id="prev-page">
+                <i class="icon icon-chevron-left"></i>
+            </button>
+            <span class="page-info">
+                第 <span id="current-page">1</span> 页，共 <span id="total-pages">1</span> 页
+            </span>
+            <button class="page-btn" id="next-page">
+                <i class="icon icon-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="action-buttons">
+        <div class="fab-btn settings" id="settings-btn" title="设置">
+            <i class="icon icon-cog"></i>
+        </div>
+        <div class="fab-btn add" id="add-site-btn" title="添加网站">
+            <i class="icon icon-plus"></i>
+        </div>
+    </div>
+
+    <!-- 添加网站表单 -->
+    <div class="modal" id="add-site-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">添加新网站</h3>
+                <button class="close-btn" id="close-modal-btn">
+                    <i class="icon icon-times"></i>
+                </button>
+            </div>
+            <form id="add-site-form">
+                <div class="form-group">
+                    <label for="site-name">网站名称 <span class="required">*</span></label>
+                    <input type="text" id="site-name" placeholder="输入网站名称，不超过16字" maxlength="16" required>
+                    <div class="error-message" id="name-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="site-url">网站地址 <span class="required">*</span></label>
+                    <input type="text" id="site-url" placeholder="https://example.com" required>
+                    <div class="error-message" id="url-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="site-color">选择颜色</label>
+                    <div class="color-picker-row">
+                        <div class="color-preview" id="color-preview" style="background-color: #c4a7e7;"></div>
+                        <select id="site-color">
+                            <option value="#c4a7e7">薰衣草紫</option>
+                            <option value="#f6c177">琥珀黄</option>
+                            <option value="#eb6f92">樱花粉</option>
+                            <option value="#9ccfd8">冰川蓝</option>
+                            <option value="#31748f">深湖蓝</option>
+                            <option value="#569cd6">天空蓝</option>
+                            <option value="#4ec9b0">翠绿色</option>
+                            <option value="#d73a49">红珊瑚</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="site-group">分组 <span class="required">*</span></label>
+                    <select id="site-group" required>
+                        <option value="">请选择分组</option>
+                        <option value="work">工作</option>
+                        <option value="study">学习</option>
+                        <option value="dev">开发</option>
+                        <option value="design">设计</option>
+                        <option value="life">生活</option>
+                        <option value="entertainment">娱乐</option>
+                    </select>
+                    <div class="error-message" id="group-error"></div>
+                </div>
+                <button type="submit" class="submit-btn" id="submit-site-btn">
+                    <i class="icon icon-save"></i> 保存网站
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 设置模态框 -->
+    <div class="modal" id="settings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">设置</h3>
+                <button class="close-btn" id="close-settings-btn">
+                    <i class="icon icon-times"></i>
+                </button>
+            </div>
+            <div class="settings-content">
+                <div class="setting-item">
+                    <label>主题模式</label>
+                    <select id="theme-select">
+                        <option value="auto">自动（跟随系统）</option>
+                        <option value="light">浅色模式</option>
+                        <option value="dark">深色模式</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label>每行网站数量</label>
+                    <select id="sites-per-row">
+                        <option value="4">4个</option>
+                        <option value="5" selected>5个</option>
+                        <option value="6">6个</option>
+                        <option value="7">7个</option>
+                        <option value="8">8个</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label>搜索引擎管理</label>
+                    <button class="secondary-btn" id="manage-search-engines">
+                        <i class="icon icon-cog"></i> 管理搜索引擎
+                    </button>
+                </div>
+                <div class="setting-item">
+                    <label>数据管理</label>
+                    <div class="button-group">
+                        <button class="secondary-btn" id="export-data">
+                            <i class="icon icon-download"></i> 导出数据
+                        </button>
+                        <button class="secondary-btn" id="import-data">
+                            <i class="icon icon-upload"></i> 导入数据
+                        </button>
+                        <button class="danger-btn" id="reset-data">
+                            <i class="icon icon-trash"></i> 重置所有数据
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右键菜单 -->
+    <div class="context-menu" id="context-menu" style="display: none;">
+        <div class="context-item" id="edit-site">
+            <i class="icon icon-edit"></i> 编辑
+        </div>
+        <div class="context-item" id="delete-site">
+            <i class="icon icon-trash"></i> 删除
+        </div>
+        <div class="context-item" id="open-new-tab">
+            <i class="icon icon-external-link"></i> 新标签页打开
+        </div>
+    </div>
+
+    <!-- 消息提示 -->
+    <div class="toast" id="toast">
+        <div class="toast-content">
+            <i class="toast-icon icon icon-check-circle"></i>
+            <span class="toast-message">操作成功！</span>
+        </div>
+    </div>
+
+    <!-- 加载打包后的JavaScript库 -->
+    <script src="libs/vendor.js"></script>
+    <script src="libs/icons.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>

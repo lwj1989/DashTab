@@ -1,0 +1,36 @@
+{
+  "name": "dashtab-extension",
+  "version": "1.0.0",
+  "description": "Chrome浏览器导航扩展",
+  "main": "popup.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:libs": "vite build --config vite.libs.config.js",
+    "build:icons": "vite build --config vite.icons.config.js",
+    "build:all": "npm run build:libs && npm run build:icons",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "sortablejs": "^1.15.0",
+    "dayjs": "^1.11.10",
+    "lunar-javascript": "^1.6.12",
+    "tinycolor2": "^1.6.0",
+    "validator": "^13.11.0",
+    "fuse.js": "^7.0.0",
+    "animate.css": "^4.1.1"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "@vitejs/plugin-legacy": "^5.0.0",
+    "rollup-plugin-copy": "^3.5.0"
+  },
+  "keywords": [
+    "chrome-extension",
+    "navigation",
+    "bookmark",
+    "new-tab"
+  ],
+  "author": "DashTab Team",
+  "license": "MIT"
+}
