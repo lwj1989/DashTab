@@ -48,32 +48,29 @@
             </div>
         </div>
 
-        <!-- 时间区域 -->
+        <!-- 时间和天气区域 -->
         <div class="time-container">
-            <div id="datetime">加载中...</div>
+            <div class="time-weather-row">
+                <div id="datetime">加载中...</div>
+                <div id="weather" class="weather-info">
+                    <span class="weather-icon">🌤️</span>
+                    <span class="weather-temp">--°</span>
+                    <span class="weather-desc">获取中...</span>
+                </div>
+            </div>
         </div>
 
         <!-- 标签筛选栏 - 顶部显著位置 -->
         <div class="tag-filter-container">
             <!-- 最常访问标签 - 置于首位 -->
             <div class="tag-filter" id="tag-filter">
-                <div class="tag-tab frequent-tab active" data-group="frequent">
-                    <i class="icon icon-fire"></i> 最常访问
-                </div>
-                <div class="tag-tab" data-group="all">全部标签</div>
+                <div class="tag-tab active" data-group="all">全部标签</div>
                 <div class="tag-tab" data-group="work">工作</div>
                 <div class="tag-tab" data-group="study">学习</div>
                 <div class="tag-tab" data-group="dev">开发</div>
                 <div class="tag-tab" data-group="design">设计</div>
                 <div class="tag-tab" data-group="life">生活</div>
                 <div class="tag-tab" data-group="entertainment">娱乐</div>
-            </div>
-        </div>
-
-        <!-- 最常访问区域 - 置顶显示 -->
-        <div class="frequent-section" id="frequent-section">
-            <div class="frequent-sites-list" id="frequent-sites">
-                <!-- 常用网站将通过JavaScript动态生成 -->
             </div>
         </div>
 

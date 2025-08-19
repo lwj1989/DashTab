@@ -271,30 +271,91 @@ body {
     transform: scale(0.98);
 }
 
-/* 时间显示 */
+/* 时间和天气显示 */
 .time-container {
     text-align: center;
     padding: 15px;
-    font-size: 14px;
-    color: var(--text-secondary);
     margin-bottom: 25px;
 }
 
+.time-weather-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
 #datetime {
-    background: var(--bg-secondary);
-    padding: 10px 25px;
-    border-radius: 30px;
-    display: inline-block;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    padding: 12px 24px;
+    border-radius: 20px;
+    font-size: 14px;
+    color: var(--text-secondary);
     box-shadow: var(--shadow-sm);
     transition: var(--transition);
+    backdrop-filter: blur(10px);
 }
 
 #datetime:hover {
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
+    border-color: var(--accent);
 }
 
-/* 标签筛选容器 - macOS风格 */
+.weather-info {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    padding: 12px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.weather-info:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent);
+}
+
+.weather-icon {
+    font-size: 16px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.weather-temp {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.weather-desc {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+/* 响应式调整 */
+@media (max-width: 640px) {
+    .time-weather-row {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    #datetime,
+    .weather-info {
+        width: 100%;
+        max-width: 280px;
+    }
+}
+
+/* 标签筛选容器 - 美化版 */
 .tag-filter-container {
     padding: 0 20px;
     margin-bottom: 25px;
@@ -302,15 +363,16 @@ body {
 
 .tag-filter {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     overflow-x: auto;
-    padding: 8px;
-    background: var(--bg-secondary);
-    border-radius: var(--border-radius);
+    padding: 6px;
+    background: var(--card-bg);
+    border-radius: 20px;
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-sm);
     -ms-overflow-style: none;
     scrollbar-width: none;
+    backdrop-filter: blur(10px);
 }
 
 .tag-filter::-webkit-scrollbar {
@@ -318,9 +380,9 @@ body {
 }
 
 .tag-tab {
-    padding: 10px 16px;
+    padding: 12px 20px;
     background: transparent;
-    border-radius: 8px;
+    border-radius: 16px;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -330,36 +392,43 @@ body {
     color: var(--text-secondary);
     display: flex;
     align-items: center;
-    gap: 6px;
-    min-height: 36px;
+    justify-content: center;
+    min-height: 40px;
+    position: relative;
+    overflow: hidden;
+}
+
+.tag-tab::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--hover-bg);
+    opacity: 0;
+    transition: var(--transition);
+    border-radius: inherit;
+}
+
+.tag-tab:hover::before {
+    opacity: 1;
 }
 
 .tag-tab:hover {
-    background: var(--hover-bg);
     color: var(--text-primary);
+    transform: translateY(-1px);
 }
 
 .tag-tab.active {
     background: var(--accent);
     color: white;
     font-weight: 600;
-}
-
-.tag-tab.frequent-tab {
-    background: linear-gradient(135deg, var(--accent) 0%, #5856d6 100%);
-    color: white;
-    font-weight: 600;
-}
-
-.tag-tab.frequent-tab:hover {
-    background: linear-gradient(135deg, var(--accent) 0%, #5856d6 100%);
-    transform: translateY(-1px);
     box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
 }
 
-.tag-tab i {
-    font-size: 12px;
-}
+
 
 /* 拖拽排序支持 */
 .tag-tab.draggable {
@@ -398,39 +467,7 @@ body {
     color: var(--accent);
 }
 
-/* 最常访问区域 - 置顶显示 */
-.frequent-section {
-    padding: 0 20px 20px;
-    margin-bottom: 10px;
-    border-bottom: 1px solid var(--separator-color);
-}
 
-.frequent-sites-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-}
-
-.frequent-site-item {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    padding: 8px 16px;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-primary);
-    cursor: pointer;
-    transition: var(--transition);
-    white-space: nowrap;
-}
-
-.frequent-site-item:hover {
-    background: var(--accent);
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
-}
 
 /* 所有网站 */
 .all-sites {
@@ -441,62 +478,81 @@ body {
     transition: var(--transition);
 }
 
-/* 网站块样式 - 美化增大版 */
+/* 网站块样式 - 进一步美化版 */
 .site-item {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 20px 16px;
+    border-radius: 20px;
+    padding: 24px 20px;
     text-align: center;
     cursor: pointer;
-    transition: var(--transition);
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     position: relative;
-    box-shadow: var(--shadow-sm);
-    height: 120px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    height: 130px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     user-select: none;
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(20px);
+    overflow: hidden;
+}
+
+.site-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.05) 100%);
+    opacity: 0;
+    transition: var(--transition);
+    border-radius: inherit;
+}
+
+.site-item:hover::before {
+    opacity: 1;
 }
 
 .site-item:hover {
-    transform: translateY(-6px) scale(1.02);
-    box-shadow: var(--shadow-lg);
+    transform: translateY(-8px) scale(1.03);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
     border-color: var(--accent);
-    background: var(--hover-bg);
 }
 
 .site-item:active {
-    transform: translateY(-3px) scale(1.01);
+    transform: translateY(-4px) scale(1.01);
 }
 
 .site-item.frequent {
-    width: 90px;
-    height: 90px;
-    padding: 12px;
+    width: 100px;
+    height: 100px;
+    padding: 16px;
+    border-radius: 18px;
 }
 
 .site-item.dragging {
-    opacity: 0.6;
-    transform: rotate(3deg) scale(0.95);
+    opacity: 0.7;
+    transform: rotate(2deg) scale(0.98);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
 }
 
 .site-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 18px;
+    font-size: 20px;
     color: white;
-    margin-bottom: 12px;
-    transition: var(--transition);
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    margin-bottom: 14px;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     position: relative;
     overflow: hidden;
 }
@@ -508,16 +564,38 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 100%);
+    background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 50%, rgba(0,0,0,0.1) 100%);
     border-radius: inherit;
 }
 
+.site-icon::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    height: 40%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 100%);
+    border-radius: 12px 12px 20px 20px;
+    opacity: 0.7;
+}
+
+.site-item:hover .site-icon {
+    transform: scale(1.08);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
 .site-item.frequent .site-icon {
-    width: 36px;
-    height: 36px;
-    font-size: 16px;
-    margin-bottom: 8px;
-    border-radius: 10px;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    margin-bottom: 10px;
+    border-radius: 12px;
+}
+
+.site-item.frequent .site-icon::after {
+    height: 35%;
+    border-radius: 10px 10px 16px 16px;
 }
 
 .site-name {
@@ -591,9 +669,9 @@ body {
 }
 
 .fab-btn {
-    min-width: 60px;
-    height: 40px;
-    border-radius: var(--border-radius);
+    min-width: 50px;
+    height: 32px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -601,9 +679,9 @@ body {
     box-shadow: var(--shadow-sm);
     transition: var(--transition);
     border: none;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
-    padding: 0 16px;
+    padding: 0 12px;
 }
 
 .fab-btn:hover {

@@ -16,7 +16,7 @@ class DashTab {
             siteOpenMode: 'current'    // current 或 new
         };
         // 恢复保存的标签状态，默认为frequent
-        this.currentTag = localStorage.getItem('dashTabCurrentTag') || 'frequent';
+        this.currentTag = localStorage.getItem('dashTabCurrentTag') || 'all';
         this.currentPage = 1;
         this.sitesPerPage = 30; // 每页显示的网站数量
         this.draggedSite = null;
@@ -70,11 +70,14 @@ class DashTab {
             // 开始时间更新
             this.startTimeUpdate();
             
-                    // 初始化拖拽排序
-        this.initializeSortable();
-        
-        // 初始化标签拖拽排序
-        this.initializeTagSortable();
+            // 获取天气信息
+            this.initWeather();
+            
+            // 初始化拖拽排序
+            this.initializeSortable();
+            
+            // 初始化标签拖拽排序
+            this.initializeTagSortable();
             
             // 隐藏加载状态
             this.showLoading(false);
@@ -251,12 +254,16 @@ class DashTab {
     initializeTagSortable() {
         const tagFilter = document.getElementById('tag-filter');
         if (tagFilter && window.DashTabLibs.Sortable) {
+            // 销毁之前的实例
+            if (this.tagSortableInstance) {
+                this.tagSortableInstance.destroy();
+            }
+            
             this.tagSortableInstance = window.DashTabLibs.utils.createSortable(tagFilter, {
                 animation: 200,
                 ghostClass: 'sortable-ghost',
                 chosenClass: 'sortable-chosen',
                 dragClass: 'sortable-drag',
-                filter: '.frequent-tab', // 最常访问标签不可拖拽
                 onEnd: (evt) => this.handleTagSortEnd(evt)
             });
         }
@@ -300,14 +307,12 @@ class DashTab {
             const tagElements = document.querySelectorAll('.tag-tab');
             const tagOrder = Array.from(tagElements).map(tab => tab.dataset.group);
             
-            // 保存标签顺序到设置中
+            // 保存标签顺序到本地存储和设置中
             this.settings.tagOrder = tagOrder;
+            localStorage.setItem('dashTabTagOrder', JSON.stringify(tagOrder));
             
             // 保存设置
             await this.saveSettings();
-            
-            // 立即重新渲染标签筛选器以应用新顺序
-            this.applyTagOrder();
             
             this.showToast('标签顺序已更新', 'success');
         } catch (error) {
@@ -318,7 +323,22 @@ class DashTab {
     
     // 应用标签排序
     applyTagOrder() {
-        if (!this.settings.tagOrder) return;
+        // 尝试从本地存储获取标签顺序
+        const savedOrder = localStorage.getItem('dashTabTagOrder');
+        let tagOrder = null;
+        
+        if (savedOrder) {
+            try {
+                tagOrder = JSON.parse(savedOrder);
+                this.settings.tagOrder = tagOrder; // 同步到设置中
+            } catch (e) {
+                console.warn('解析标签顺序失败:', e);
+            }
+        } else if (this.settings.tagOrder) {
+            tagOrder = this.settings.tagOrder;
+        }
+        
+        if (!tagOrder) return;
         
         const container = document.getElementById('tag-filter');
         if (!container) return;
@@ -326,7 +346,7 @@ class DashTab {
         const tagElements = Array.from(container.querySelectorAll('.tag-tab'));
         
         // 按照保存的顺序重新排列标签
-        this.settings.tagOrder.forEach(tagKey => {
+        tagOrder.forEach(tagKey => {
             const tagElement = tagElements.find(el => el.dataset.group === tagKey);
             if (tagElement) {
                 container.appendChild(tagElement);
@@ -338,8 +358,6 @@ class DashTab {
     getFilteredSitesForSort() {
         if (this.currentTag === 'all') {
             return this.data.sites;
-        } else if (this.currentTag === 'frequent') {
-            return this.getFrequentSites();
         } else {
             return this.data.sites.filter(site => (site.tag || site.group) === this.currentTag);
         }
@@ -837,42 +855,16 @@ class DashTab {
     renderSites() {
         const sites = this.getFilteredSites();
         
-        if (this.currentTag === 'frequent') {
-            // 显示常用网站
-            this.renderFrequentSites(sites);
-            this.renderAllSites([]);
-            this.renderEmptyState(sites.length === 0);
-        } else {
-            // 显示普通网站列表
-            this.renderFrequentSites([]);
-            this.renderAllSites(sites);
-            this.renderEmptyState(sites.length === 0);
-        }
+        // 始终显示普通网站列表
+        this.renderAllSites(sites);
+        this.renderEmptyState(sites.length === 0);
     }
     
-    // 获取常用网站
-    getFrequentSites() {
-        return this.data.sites
-            .filter(site => {
-                const stats = this.data.visitStats[site.id];
-                return stats && stats.count > 0;
-            })
-            .sort((a, b) => {
-                const statsA = this.data.visitStats[a.id];
-                const statsB = this.data.visitStats[b.id];
-                return (statsB?.count || 0) - (statsA?.count || 0);
-            })
-            .slice(0, 5); // 只显示前5个最常用的
-    }
+
     
     // 获取筛选后的网站
     getFilteredSites() {
         let sites = this.data.sites;
-        
-        // 如果是常用标签，返回常用网站
-        if (this.currentTag === 'frequent') {
-            return this.getFrequentSites();
-        }
         
         // 按标签筛选
         if (this.currentTag !== 'all') {
@@ -889,39 +881,7 @@ class DashTab {
         return sites.slice(startIndex, endIndex);
     }
     
-    // 渲染常用网站
-    renderFrequentSites(sites) {
-        const container = document.getElementById('frequent-sites');
-        const section = document.getElementById('frequent-section');
-        
-        if (!container || !section) return;
-        
-        if (sites.length === 0 || this.currentTag !== 'frequent') {
-            section.style.display = 'none';
-            return;
-        }
-        
-        section.style.display = 'block';
-        container.innerHTML = '';
-        
-        sites.forEach(site => {
-            const siteEl = this.createFrequentSiteElement(site);
-            container.appendChild(siteEl);
-        });
-    }
-    
-    // 创建常用网站元素（只显示名称）
-    createFrequentSiteElement(site) {
-        const div = document.createElement('div');
-        div.className = 'frequent-site-item';
-        div.dataset.siteId = site.id;
-        div.textContent = site.name;
-        
-        // 绑定事件
-        div.addEventListener('click', () => this.openSite(site));
-        
-        return div;
-    }
+
     
     // 渲染所有网站
     renderAllSites(sites) {
@@ -1016,9 +976,7 @@ class DashTab {
         const countEl = document.getElementById('sites-count');
         if (countEl) {
             let count = this.data.sites.length;
-            if (this.currentTag === 'frequent') {
-                count = this.getFrequentSites().length;
-            } else if (this.currentTag !== 'all') {
+            if (this.currentTag !== 'all') {
                 count = this.data.sites.filter(site => (site.tag || site.group) === this.currentTag).length;
             }
             countEl.textContent = count;
@@ -1157,7 +1115,6 @@ class DashTab {
         
         // 创建标签
         const tags = [
-            { key: 'frequent', name: '最常访问', icon: 'fire', special: true },
             { key: 'all', name: '全部标签' },
             { key: 'work', name: '工作' },
             { key: 'study', name: '学习' },
@@ -1172,19 +1129,11 @@ class DashTab {
         tags.forEach(tag => {
             const tabElement = document.createElement('div');
             tabElement.className = 'tag-tab';
-            if (tag.special) {
-                tabElement.classList.add('frequent-tab');
-            }
             if (tag.key === this.currentTag) {
                 tabElement.classList.add('active');
             }
             tabElement.dataset.group = tag.key;
-            
-            if (tag.icon) {
-                tabElement.innerHTML = `<i class="icon icon-${tag.icon}"></i> ${tag.name}`;
-            } else {
-                tabElement.textContent = tag.name;
-            }
+            tabElement.textContent = tag.name;
             
             tabElement.addEventListener('click', () => this.filterByTag(tag.key));
             
@@ -1687,6 +1636,126 @@ class DashTab {
                 this.showToast('删除失败，请重试', 'error');
             }
         }
+    }
+
+    // 初始化天气功能
+    async initWeather() {
+        try {
+            // 获取地理位置
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        this.fetchWeather(position.coords.latitude, position.coords.longitude);
+                    },
+                    (error) => {
+                        console.warn('获取位置失败:', error);
+                        this.updateWeatherDisplay('📍', '--°', '位置获取失败');
+                    },
+                    { timeout: 10000, enableHighAccuracy: false }
+                );
+            } else {
+                this.updateWeatherDisplay('📍', '--°', '不支持定位');
+            }
+        } catch (error) {
+            console.error('天气初始化失败:', error);
+            this.updateWeatherDisplay('❌', '--°', '天气获取失败');
+        }
+    }
+    
+    // 获取天气信息
+    async fetchWeather(lat, lon) {
+        try {
+            // 使用免费的OpenWeatherMap API (需要API key，这里使用示例key)
+            // 实际使用时需要申请正式的API key
+            const apiKey = 'demo'; // 替换为真实的API key
+            const response = await fetch(
+                `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=zh_cn`
+            );
+            
+            if (!response.ok) {
+                // 如果OpenWeatherMap不可用，尝试使用其他免费API
+                await this.fetchWeatherAlternative(lat, lon);
+                return;
+            }
+            
+            const data = await response.json();
+            const weather = this.parseWeatherData(data);
+            this.updateWeatherDisplay(weather.icon, weather.temp, weather.description);
+            
+        } catch (error) {
+            console.warn('主要天气API失败，尝试备用方案:', error);
+            await this.fetchWeatherAlternative(lat, lon);
+        }
+    }
+    
+    // 备用天气API
+    async fetchWeatherAlternative(lat, lon) {
+        try {
+            // 使用wttr.in API（免费且无需API key）
+            const response = await fetch(
+                `https://wttr.in/${lat},${lon}?format=%C+%t&lang=zh`
+            );
+            
+            if (response.ok) {
+                const data = await response.text();
+                const parts = data.trim().split(' ');
+                const description = parts[0] || '晴天';
+                const temp = parts[1] || '--°';
+                
+                const icon = this.getWeatherIcon(description);
+                this.updateWeatherDisplay(icon, temp, description);
+            } else {
+                this.updateWeatherDisplay('🌤️', '--°', '天气获取失败');
+            }
+        } catch (error) {
+            console.error('备用天气API也失败:', error);
+            this.updateWeatherDisplay('🌤️', '--°', '天气获取失败');
+        }
+    }
+    
+    // 解析天气数据
+    parseWeatherData(data) {
+        const temp = Math.round(data.main.temp) + '°';
+        const description = data.weather[0].description;
+        const weatherCode = data.weather[0].id;
+        const icon = this.getWeatherIconByCode(weatherCode);
+        
+        return { icon, temp, description };
+    }
+    
+    // 根据天气代码获取emoji图标
+    getWeatherIconByCode(code) {
+        if (code >= 200 && code < 300) return '⛈️'; // 雷暴
+        if (code >= 300 && code < 400) return '🌦️'; // 毛毛雨
+        if (code >= 500 && code < 600) return '🌧️'; // 雨
+        if (code >= 600 && code < 700) return '❄️'; // 雪
+        if (code >= 700 && code < 800) return '🌫️'; // 雾霾
+        if (code === 800) return '☀️'; // 晴天
+        if (code > 800) return '☁️'; // 多云
+        return '🌤️'; // 默认
+    }
+    
+    // 根据天气描述获取emoji图标
+    getWeatherIcon(description) {
+        const desc = description.toLowerCase();
+        if (desc.includes('雨') || desc.includes('rain')) return '🌧️';
+        if (desc.includes('雪') || desc.includes('snow')) return '❄️';
+        if (desc.includes('雷') || desc.includes('thunder')) return '⛈️';
+        if (desc.includes('雾') || desc.includes('fog')) return '🌫️';
+        if (desc.includes('云') || desc.includes('cloud')) return '☁️';
+        if (desc.includes('晴') || desc.includes('clear') || desc.includes('sunny')) return '☀️';
+        return '🌤️';
+    }
+    
+    // 更新天气显示
+    updateWeatherDisplay(icon, temp, description) {
+        const weatherIcon = document.querySelector('.weather-icon');
+        const weatherTemp = document.querySelector('.weather-temp');
+        const weatherDesc = document.querySelector('.weather-desc');
+        
+        if (weatherIcon) weatherIcon.textContent = icon;
+        if (weatherTemp) weatherTemp.textContent = temp;
+        if (weatherDesc) weatherDesc.textContent = description;
     }
 }
 
