@@ -355,7 +355,7 @@ body {
     }
 }
 
-/* 标签筛选容器 - 美化版 */
+/* tab筛选容器 - 美化版 */
 .tag-filter-container {
     padding: 0 20px;
     margin-bottom: 25px;
@@ -428,7 +428,45 @@ body {
     transform: translateY(-1px);
 }
 
+/* Tab内容和删除按钮布局 */
+.tab-content {
+    flex: 1;
+    cursor: pointer;
+}
 
+.tab-delete-btn {
+    margin-left: 8px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: var(--transition);
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    height: 16px;
+}
+
+.tab-delete-btn:hover {
+    background: var(--error);
+    color: white;
+    opacity: 1 !important;
+}
+
+.tag-tab:hover .tab-delete-btn {
+    opacity: 0.7;
+}
+
+.tag-tab.active .tab-delete-btn {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.tag-tab.active:hover .tab-delete-btn {
+    opacity: 0.9;
+}
 
 /* 拖拽排序支持 */
 .tag-tab.draggable {
@@ -449,7 +487,7 @@ body {
     position: relative;
     overflow: hidden;
     flex: 1;
-    padding-bottom: 20px;
+    padding-bottom: 50px;
 }
 
 .section-title {
@@ -495,7 +533,6 @@ body {
     justify-content: center;
     align-items: center;
     user-select: none;
-    backdrop-filter: blur(20px);
     overflow: hidden;
 }
 
@@ -517,7 +554,6 @@ body {
 }
 
 .site-item:hover {
-    transform: translateY(-8px) scale(1.03);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
     border-color: var(--accent);
 }
@@ -557,31 +593,7 @@ body {
     overflow: hidden;
 }
 
-.site-icon::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 50%, rgba(0,0,0,0.1) 100%);
-    border-radius: inherit;
-}
-
-.site-icon::after {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    right: 2px;
-    height: 40%;
-    background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 100%);
-    border-radius: 12px 12px 20px 20px;
-    opacity: 0.7;
-}
-
 .site-item:hover .site-icon {
-    transform: scale(1.08);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
@@ -841,7 +853,7 @@ body {
     transform: scale(1.1);
 }
 
-/* 标签输入容器 */
+/* tab输入容器 */
 .tag-input-container {
     display: flex;
     flex-direction: column;
@@ -1224,7 +1236,7 @@ body {
     padding: 4px 0;
 }
 
-/* 标签选择器模态框样式 */
+/* tab选择器模态框样式 */
 .tag-picker-modal {
     max-width: 480px;
     width: 90%;
@@ -1402,6 +1414,7 @@ body {
 }
 
 .cancel-btn {
+    flex: 1;
     padding: 10px 20px;
     border-radius: 8px;
     background: var(--bg-secondary);
@@ -1420,8 +1433,8 @@ body {
 }
 
 .submit-btn {
+    flex: 1;
     padding: 12px 24px;
-    min-width: 120px;
 }
 
 /* 响应式调整 */
@@ -1771,3 +1784,67 @@ select:focus-visible {
 .mt-1 { margin-top: 8px; }
 .mt-2 { margin-top: 16px; }
 .mt-3 { margin-top: 24px; }
+
+/* 分类管理模态框样式 */
+.category-management-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.category-list-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    padding: 10px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.category-list-item {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    transition: var(--transition);
+}
+
+.category-list-item:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+}
+
+.category-list-item .category-name {
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.category-list-item .category-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.category-list-item .modern-btn.danger.small {
+    padding: 4px 8px;
+    font-size: 11px;
+    border-radius: 6px;
+}
+
+.empty-list-message {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 20px;
+    grid-column: 1 / -1; /* Span across all columns */
+}

@@ -1,6 +1,6 @@
 # DashTab - Chrome浏览器导航扩展
 
-一个现代化、极简的Chrome新标签页导航扩展，提供本地存储、智能搜索、网站管理等功能。
+一个现代化、极简的Chrome新tab导航扩展，提供本地存储、智能搜索、网站管理等功能。
 
 ## ✨ 特性
 
@@ -82,7 +82,7 @@
 ```
 DashTab/
 ├── manifest.json          # Chrome扩展清单
-├── popup.html             # 新标签页HTML
+├── popup.html             # 新tabHTML
 ├── popup.css              # 主样式文件
 ├── popup.js               # 主要逻辑
 ├── background.js          # 后台服务
@@ -127,7 +127,7 @@ npm run preview
 
 2. **测试扩展**
    - 在Chrome扩展管理页面点击刷新
-   - 打开新标签页查看效果
+   - 打开新tab查看效果
 
 3. **调试技巧**
    - 使用Chrome开发者工具
@@ -194,4 +194,4 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ---
 
-**DashTab Team** - 让每个新标签页都更高效 🚀
+**DashTab Team** - 让每个新tab都更高效 🚀

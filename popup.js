@@ -16,9 +16,15 @@ class DashTab {
             siteOpenMode: 'current'    // current 或 new
         };
         // Tab状态管理 - 完善的记忆功能
-        this.currentTag = localStorage.getItem('dashTabCurrentTag') || 'all';
-        this.tabsOrder = this.loadTabsOrder(); // 加载Tab顺序
-        this.availableTags = this.loadAvailableTags(); // 加载可用标签列表
+        this.categoriesOrder = this.loadCategoriesOrder(); // 加载分类顺序
+        this.availableCategories = this.loadAvailableCategories(); // 加载可用分类列表
+        // 设置当前tab，如果没有保存的或者是'all'，则使用第一个可用的tab
+        const savedCurrentCategory = localStorage.getItem('dashTabCurrentCategory');
+        if (!savedCurrentCategory || savedCurrentCategory === 'all') {
+            this.currentCategory = this.availableCategories.length > 0 ? this.availableCategories[0].name : 'all';
+        } else {
+            this.currentCategory = savedCurrentCategory;
+        }
         this.currentPage = 1;
         this.sitesPerPage = 30; // 每页显示的网站数量
         this.draggedSite = null;
@@ -34,9 +40,9 @@ class DashTab {
     }
     
     // 加载Tab顺序配置
-    loadTabsOrder() {
+    loadCategoriesOrder() { // 函数功能：加载分类顺序，从localStorage获取或返回默认空数组
         try {
-            const savedOrder = localStorage.getItem('dashTabTabsOrder');
+            const savedOrder = localStorage.getItem('dashTabCategoriesOrder');
             return savedOrder ? JSON.parse(savedOrder) : [];
         } catch (error) {
             console.warn('加载Tab顺序失败:', error);
@@ -45,51 +51,35 @@ class DashTab {
     }
     
     // 保存Tab顺序配置
-    saveTabsOrder() {
+    saveCategoriesOrder() { // 函数功能：保存分类顺序到localStorage
         try {
-            localStorage.setItem('dashTabTabsOrder', JSON.stringify(this.tabsOrder));
+            localStorage.setItem('dashTabCategoriesOrder', JSON.stringify(this.categoriesOrder));
         } catch (error) {
             console.error('保存Tab顺序失败:', error);
         }
     }
     
-    // 加载可用标签列表
-    loadAvailableTags() {
+    // 加载可用tab列表
+    loadAvailableCategories() { // 函数功能：加载可用分类列表，从localStorage获取或返回默认空数组
         try {
-            const savedTags = localStorage.getItem('dashTabAvailableTags');
-            if (savedTags) {
-                return JSON.parse(savedTags);
+            const savedCategories = localStorage.getItem('dashTabAvailableCategories');
+            if (savedCategories) {
+                return JSON.parse(savedCategories);
             }
-            // 默认标签列表
-            return [
-                { key: 'all', name: '全部', removable: false },
-                { key: 'work', name: '工作', removable: true },
-                { key: 'study', name: '学习', removable: true },
-                { key: 'dev', name: '开发', removable: true },
-                { key: 'design', name: '设计', removable: true },
-                { key: 'life', name: '生活', removable: true },
-                { key: 'entertainment', name: '娱乐', removable: true }
-            ];
+            // 默认返回空数组
+            return [];
         } catch (error) {
-            console.warn('加载可用标签失败:', error);
-            return [
-                { key: 'all', name: '全部', removable: false },
-                { key: 'work', name: '工作', removable: true },
-                { key: 'study', name: '学习', removable: true },
-                { key: 'dev', name: '开发', removable: true },
-                { key: 'design', name: '设计', removable: true },
-                { key: 'life', name: '生活', removable: true },
-                { key: 'entertainment', name: '娱乐', removable: true }
-            ];
+            console.warn('加载可用tab失败:', error);
+            return [];
         }
     }
     
-    // 保存可用标签列表
-    saveAvailableTags() {
+    // 保存可用tab列表
+    saveAvailableCategories() { // 函数功能：保存可用分类列表到localStorage
         try {
-            localStorage.setItem('dashTabAvailableTags', JSON.stringify(this.availableTags));
+            localStorage.setItem('dashTabAvailableCategories', JSON.stringify(this.availableCategories));
         } catch (error) {
-            console.error('保存可用标签失败:', error);
+            console.error('保存可用tab失败:', error);
         }
     }
     
@@ -139,8 +129,8 @@ class DashTab {
             // 初始化拖拽排序
             this.initializeSortable();
             
-            // 初始化标签拖拽排序
-            this.initializeTagSortable();
+            // 初始化tab拖拽排序
+            this.initializeCategorySortable();
             
             // 隐藏加载状态
             this.showLoading(false);
@@ -168,6 +158,31 @@ class DashTab {
                     if (response && response.data) {
                         this.data = response.data;
                         this.settings = response.settings || this.settings;
+
+                        // 兼容旧版本数据结构
+                        if (this.data.groups && typeof this.data.groups === 'object' && !Array.isArray(this.data.groups)) {
+                            console.log('检测到旧版分类数据结构，正在转换...');
+                            const newCategories = [];
+                            for (const key in this.data.groups) {
+                                if (Object.hasOwnProperty.call(this.data.groups, key)) {
+                                    newCategories.push({ name: this.data.groups[key].name, removable: true });
+                                }
+                            }
+                            this.availableCategories = newCategories;
+                            this.saveAvailableCategories();
+                            // 将旧的groups对象清空或移除，避免混淆
+                            this.data.groups = []; 
+                            this.saveData(); // 保存转换后的数据
+                        } else if (Array.isArray(this.data.groups)) {
+                            // 如果是新版本，直接使用
+                            this.availableCategories = this.data.groups;
+                        }
+
+                        // 如果availableCategories为空，设置默认值
+                        if (this.availableCategories.length === 0) {
+                            this.saveAvailableCategories();
+                        }
+
                         console.log('数据加载成功:', this.data);
                         resolve();
                     } else {
@@ -267,8 +282,8 @@ class DashTab {
         // 初始化搜索引擎下拉框
         this.updateSearchEngineSelect();
         
-        // 初始化标签筛选
-        this.updateTagFilter();
+        // 初始化tab筛选
+        this.updateCategoryFilter();
         
         // 替换所有图标
         this.replaceAllIcons();
@@ -313,8 +328,8 @@ class DashTab {
         }
     }
     
-    // 初始化标签拖拽排序
-    initializeTagSortable() {
+    // 初始化tab拖拽排序
+    initializeCategorySortable() {
         const tagFilter = document.getElementById('tag-filter');
         if (tagFilter && window.DashTabLibs.Sortable) {
             // 销毁之前的实例
@@ -360,84 +375,84 @@ class DashTab {
         }
     }
     
-    // 处理标签排序结束
+    // 处理tab排序结束
     async handleTagSortEnd(evt) {
         try {
             const { oldIndex, newIndex } = evt;
             if (oldIndex === newIndex) return;
             
-            // 获取当前标签顺序（排除添加标签按钮）
+            // 获取当前tab顺序（排除添加tab按钮）
             const tagElements = document.querySelectorAll('.tag-tab:not(.add-tag-btn)');
             const newTabsOrder = Array.from(tagElements).map(tab => tab.dataset.group);
             
             // 更新tabsOrder属性
-            this.tabsOrder = newTabsOrder;
+            this.categoriesOrder = newTabsOrder;
             
             // 保存到localStorage
-            this.saveTabsOrder();
+            this.saveCategoriesOrder();
             
             // 兼容旧版本：同时保存到settings中
             this.settings.tagOrder = newTabsOrder;
-            localStorage.setItem('dashTabTagOrder', JSON.stringify(newTabsOrder));
+            localStorage.setItem('dashTabCategoryOrder', JSON.stringify(newTabsOrder));
             
             // 保存设置
             await this.saveSettings();
             
-            this.showToast('标签顺序已更新', 'success');
-        } catch (error) {
-            console.error('标签排序失败:', error);
-            this.showToast('标签排序失败，请重试', 'error');
-        }
+            this.showToast('Tab顺序已更新', 'success');
+         } catch (error) {
+             console.error('Tab排序失败:', error);
+             this.showToast('Tab排序失败，请重试', 'error');
+         }
     }
     
-    // 应用标签排序
-    applyTagOrder() {
-        // 优先使用新的tabsOrder属性
-        let tagOrder = this.tabsOrder;
+    // 应用分类排序
+    applyCategoryOrder() { // 函数功能：应用保存的分类顺序到UI，并兼容旧数据
+        // 优先使用新的categoriesOrder属性
+        let categoryOrder = this.categoriesOrder;
         
-        // 如果tabsOrder为空，尝试从旧版本兼容
-        if (!tagOrder || tagOrder.length === 0) {
-            const savedOrder = localStorage.getItem('dashTabTagOrder');
+        // 如果categoriesOrder为空，尝试从旧版本兼容
+        if (!categoryOrder || categoryOrder.length === 0) {
+            const savedOrder = localStorage.getItem('dashTabCategoryOrder');
             if (savedOrder) {
                 try {
-                    tagOrder = JSON.parse(savedOrder);
-                    this.tabsOrder = tagOrder; // 同步到新属性
-                    this.saveTabsOrder(); // 保存到新存储位置
+                    categoryOrder = JSON.parse(savedOrder);
+                    this.categoriesOrder = categoryOrder; // 同步到新属性
+                    this.saveCategoriesOrder(); // 保存到新存储位置
                 } catch (e) {
-                    console.warn('解析标签顺序失败:', e);
+                    console.warn('解析分类顺序失败:', e);
                 }
             } else if (this.settings.tagOrder) {
-                tagOrder = this.settings.tagOrder;
-                this.tabsOrder = tagOrder;
-                this.saveTabsOrder();
+                categoryOrder = this.settings.tagOrder;
+                this.categoriesOrder = categoryOrder;
+                this.saveCategoriesOrder();
             }
         }
         
-        if (!tagOrder || tagOrder.length === 0) return;
+        if (!categoryOrder || categoryOrder.length === 0) return;
         
         const container = document.getElementById('tag-filter');
         if (!container) return;
         
-        const tagElements = Array.from(container.querySelectorAll('.tag-tab:not(.add-tag-btn)'));
-        const addTagBtn = container.querySelector('.add-tag-btn');
+        const categoryElements = Array.from(container.querySelectorAll('.tag-tab:not(.add-tag-btn)'));
+        const addCategoryBtn = container.querySelector('.add-tag-btn');
         
-        // 按照保存的顺序重新排列标签
-        tagOrder.forEach(tagKey => {
-            const tagElement = tagElements.find(el => el.dataset.group === tagKey);
-            if (tagElement) {
-                container.appendChild(tagElement);
+        // 按照保存的顺序重新排列分类
+        categoryOrder.forEach(categoryName => {
+            const categoryElement = categoryElements.find(el => el.dataset.group === categoryName);
+            if (categoryElement) {
+                container.appendChild(categoryElement);
             }
         });
         
-        // 确保添加标签按钮始终在最后
-        if (addTagBtn) {
-            container.appendChild(addTagBtn);
+        // 确保添加分类按钮始终在最后
+        if (addCategoryBtn) {
+            container.appendChild(addCategoryBtn);
         }
     }
     
     // 获取用于排序的网站列表
     getFilteredSitesForSort() {
-        if (this.currentTag === 'all') {
+        if (this.currentCategory === 'all') {
             return this.data.sites;
         } else {
             return this.data.sites.filter(site => (site.tag || site.group) === this.currentTag);
@@ -483,16 +498,16 @@ class DashTab {
         });
         searchBtn?.addEventListener('click', () => this.performSearch());
         
-        // 标签筛选
+        // tab筛选
         const tagTabs = document.querySelectorAll('.tag-tab');
         tagTabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 const tag = tab.dataset.group; // 保持使用data-group属性以兼容现有代码
-                this.filterByTag(tag);
+                this.filterByCategory(tag);
             });
         });
         
-        // 自定义标签输入
+        // 自定义tab输入
         const tagSelect = document.getElementById('site-tag');
         const customTagInput = document.getElementById('custom-tag-input');
         
@@ -582,14 +597,7 @@ class DashTab {
         document.addEventListener('contextmenu', (e) => this.handleContextMenu(e));
         document.addEventListener('click', () => this.hideContextMenu());
         
-        // 标签管理按钮
-        const exportTagsBtn = document.getElementById('export-tags');
-        const importTagsBtn = document.getElementById('import-tags');
-        const resetTagsBtn = document.getElementById('reset-tags');
         
-        exportTagsBtn?.addEventListener('click', () => this.exportTagsData());
-        importTagsBtn?.addEventListener('click', () => this.importTagsData());
-        resetTagsBtn?.addEventListener('click', () => this.resetTagsData());
         
         // 数据管理按钮
         const exportBtn = document.getElementById('export-data');
@@ -616,6 +624,41 @@ class DashTab {
                 this.hideSearchEngineModal();
             }
         });
+        
+        // 分类管理按钮
+        const manageCategoriesBtn = document.getElementById('manage-categories-btn');
+        const addCategoryBtn = document.getElementById('add-category-btn');
+
+        manageCategoriesBtn?.addEventListener('click', () => this.showCategoryManagementModal());
+        addCategoryBtn?.addEventListener('click', () => this.showAddCategoryModal());
+
+        // 分类管理模态框
+        const categoryManagementModal = document.getElementById('category-management-modal');
+        const closeCategoryManagementBtn = document.getElementById('close-category-management-btn');
+        const openAddCategoryModalBtn = document.getElementById('open-add-category-modal-btn');
+
+        closeCategoryManagementBtn?.addEventListener('click', () => this.hideCategoryManagementModal());
+        categoryManagementModal?.addEventListener('click', (e) => {
+            if (e.target === categoryManagementModal) {
+                this.hideCategoryManagementModal();
+            }
+        });
+        openAddCategoryModalBtn?.addEventListener('click', () => this.showAddCategoryModal());
+
+        // 添加新分类模态框
+        const addCategoryModal = document.getElementById('add-category-modal');
+        const closeAddCategoryModalBtn = document.getElementById('close-add-category-modal-btn');
+        const cancelAddCategoryBtn = document.getElementById('cancel-add-category-btn');
+        const addCategoryForm = document.getElementById('add-category-form');
+
+        closeAddCategoryModalBtn?.addEventListener('click', () => this.hideAddCategoryModal());
+        cancelAddCategoryBtn?.addEventListener('click', () => this.hideAddCategoryModal());
+        addCategoryModal?.addEventListener('click', (e) => {
+            if (e.target === addCategoryModal) {
+                this.hideAddCategoryModal();
+            }
+        });
+        addCategoryForm?.addEventListener('submit', (e) => this.handleAddNewCategory(e));
         
         // 键盘快捷键
         document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
@@ -646,6 +689,9 @@ class DashTab {
     showAddSiteModal() {
         const modal = document.getElementById('add-site-modal');
         if (modal) {
+            // 更新tab选择器选项
+            this.updateSiteTagSelect();
+            
             modal.classList.add('show');
             modal.style.display = 'flex';
             
@@ -812,12 +858,12 @@ class DashTab {
             isValid = false;
         }
         
-        // 验证标签
+        // 验证tab
         if (!data.tag) {
-            this.showFormError('tag-error', '请选择标签');
+            this.showFormError('tab-error', '请选择tab');
             isValid = false;
         } else if (data.tag.length > 10) {
-            this.showFormError('tag-error', '标签名称不能超过10个字符');
+            this.showFormError('tab-error', 'tab名称不能超过10个字符');
             isValid = false;
         }
         
@@ -906,18 +952,18 @@ class DashTab {
         }
     }
     
-    // 按标签筛选
-    filterByTag(tag) {
-        this.currentTag = tag;
+    // 按tab筛选
+    filterByCategory(category) { // 函数功能：按分类筛选网站，更新当前分类并渲染UI
+        this.currentCategory = category;
         this.currentPage = 1;
         
-        // 保存当前标签状态到本地存储
-        localStorage.setItem('dashTabCurrentTag', tag);
+        // 保存当前分类状态到本地存储
+        localStorage.setItem('dashTabCurrentCategory', category);
         
-        // 更新标签状态
-        const tagTabs = document.querySelectorAll('.tag-tab');
-        tagTabs.forEach(tab => {
-            if (tab.dataset.group === tag) {
+        // 更新分类状态
+        const categoryTabs = document.querySelectorAll('.tag-tab');
+        categoryTabs.forEach(tab => {
+            if (tab.dataset.group === category) {
                 tab.classList.add('active');
             } else {
                 tab.classList.remove('active');
@@ -930,7 +976,7 @@ class DashTab {
         // 重新初始化拖拽排序
         setTimeout(() => {
             this.initializeSortable();
-            this.initializeTagSortable();
+            this.initializeCategorySortable();
         }, 100);
     }
     
@@ -956,9 +1002,9 @@ class DashTab {
     getFilteredSites() {
         let sites = this.data.sites;
         
-        // 按标签筛选
-        if (this.currentTag !== 'all') {
-            sites = sites.filter(site => (site.tag || site.group) === this.currentTag);
+        // 按tab筛选
+        if (this.currentCategory !== 'all') {
+            sites = sites.filter(site => (site.tag || site.group) === this.currentCategory);
         }
         
         // 按order排序
@@ -1066,8 +1112,8 @@ class DashTab {
         const countEl = document.getElementById('sites-count');
         if (countEl) {
             let count = this.data.sites.length;
-            if (this.currentTag !== 'all') {
-                count = this.data.sites.filter(site => (site.tag || site.group) === this.currentTag).length;
+            if (this.currentCategory !== 'all') {
+                count = this.data.sites.filter(site => (site.category || site.group) === this.currentCategory).length;
             }
             countEl.textContent = count;
         }
@@ -1084,10 +1130,10 @@ class DashTab {
         if (!paginationEl) return;
         
         let sites = this.data.sites;
-        if (this.currentTag === 'frequent') {
+        if (this.currentCategory === 'frequent') {
             sites = this.getFrequentSites();
-        } else if (this.currentTag !== 'all') {
-            sites = sites.filter(site => (site.tag || site.group) === this.currentTag);
+        } else if (this.currentCategory !== 'all') {
+            sites = sites.filter(site => (site.category || site.group) === this.currentCategory);
         }
         
         const totalPages = Math.ceil(sites.length / this.sitesPerPage);
@@ -1192,413 +1238,418 @@ class DashTab {
         });
     }
     
-    // 更新标签筛选 - 支持动态标签管理
-    updateTagFilter() {
+    // 更新网站添加表单中的tab选择器
+    updateSiteTagSelect() {
+        const select = document.getElementById('site-tag');
+        if (!select) return;
+        
+        // 保存当前选中的值
+        const currentValue = select.value;
+        
+        // 清空选项
+        select.innerHTML = '';
+        
+        // 添加默认选项
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = '请选择分类';
+        select.appendChild(defaultOption);
+        
+        // 添加现有的分类选项
+        this.availableCategories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.name;
+            option.textContent = category.name;
+            select.appendChild(option);
+        });
+        
+        // 恢复之前选中的值（如果仍然存在）
+        if (currentValue && this.availableCategories.some(category => category.name === currentValue)) {
+            select.value = currentValue;
+        }
+    }
+    
+    // 更新tab筛选 - 支持动态tab管理
+    updateCategoryFilter() { // 函数功能：更新分类筛选UI，根据可用分类动态渲染
         const container = document.getElementById('tag-filter');
         if (!container) return;
         
         // 清空容器
         container.innerHTML = '';
-        
-        // 如果没有可用标签，显示提示信息
-        if (this.availableTags.length === 0) {
-            const emptyTip = document.createElement('div');
-            emptyTip.className = 'tag-empty-tip';
-            emptyTip.textContent = '暂无标签，请添加';
-            container.appendChild(emptyTip);
-        } else {
-            // 按照保存的顺序或默认顺序渲染标签
-            const orderedTags = this.getOrderedTags();
-            
-            orderedTags.forEach(tag => {
-                const tabElement = document.createElement('div');
-                tabElement.className = 'tag-tab';
-                if (tag.key === this.currentTag) {
-                    tabElement.classList.add('active');
-                }
-                tabElement.dataset.group = tag.key;
-                tabElement.textContent = tag.name;
-                
-                // 添加点击事件
-                tabElement.addEventListener('click', () => this.filterByTag(tag.key));
-                
-                container.appendChild(tabElement);
-            });
+
+        // 添加“全部”分类
+        const allCategoryElement = document.createElement('div');
+        allCategoryElement.className = 'tag-tab';
+        if ('all' === this.currentCategory) {
+            allCategoryElement.classList.add('active');
         }
+        allCategoryElement.dataset.group = 'all';
+        allCategoryElement.textContent = '全部';
+        allCategoryElement.addEventListener('click', () => this.filterByCategory('all'));
+        container.appendChild(allCategoryElement);
         
-        // 添加"添加标签"按钮 - 固定在最右侧
-        const addTagBtn = document.createElement('div');
-        addTagBtn.className = 'tag-tab add-tag-btn';
-        addTagBtn.innerHTML = '<i class="icon icon-plus"></i> 添加标签';
-        addTagBtn.addEventListener('click', () => this.showTagPicker());
-        container.appendChild(addTagBtn);
+        
+            // 按照保存的顺序或默认顺序渲染分类
+        const orderedCategories = this.getOrderedCategories();
+        
+        orderedCategories.forEach(category => {
+            const categoryElement = document.createElement('div');
+            categoryElement.className = 'tag-tab';
+            if (category.name === this.currentCategory) {
+                categoryElement.classList.add('active');
+            }
+            categoryElement.dataset.group = category.name;
+            
+            // 创建分类内容容器
+            const categoryContent = document.createElement('span');
+            categoryContent.className = 'tab-content';
+            categoryContent.textContent = category.name;
+            categoryElement.appendChild(categoryContent);
+            
+            // 添加点击事件
+            categoryElement.addEventListener('click', () => this.filterByCategory(category.name));
+            
+            // 添加双击编辑事件（仅对可删除的分类）
+            if (category.removable) {
+                categoryContent.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    this.editCategoryName(category.name, categoryContent);
+                });
+            }
+            
+            container.appendChild(categoryElement);
+        });
         
         // 重新初始化拖拽排序
-        this.initializeTagSortable();
+        this.initializeCategorySortable();
     }
     
-    // 获取有序的标签列表
-    getOrderedTags() {
-        if (this.tabsOrder.length === 0) {
-            return this.availableTags;
+    // 获取有序的分类列表
+    getOrderedCategories() { // 函数功能：获取有序的分类列表，按保存顺序排列并更新新分类
+        if (this.categoriesOrder.length === 0) {
+            return this.availableCategories;
         }
         
-        const orderedTags = [];
-        const remainingTags = [...this.availableTags];
+        const orderedCategories = [];
+        const remainingCategories = [...this.availableCategories];
         
-        // 按保存的顺序添加标签
-        this.tabsOrder.forEach(tagKey => {
-            const tagIndex = remainingTags.findIndex(tag => tag.key === tagKey);
-            if (tagIndex !== -1) {
-                orderedTags.push(remainingTags.splice(tagIndex, 1)[0]);
+        // 按保存的顺序添加分类
+        this.categoriesOrder.forEach(categoryName => {
+            const categoryIndex = remainingCategories.findIndex(category => category.name === categoryName);
+            if (categoryIndex !== -1) {
+                orderedCategories.push(remainingCategories.splice(categoryIndex, 1)[0]);
             }
         });
         
-        // 添加剩余的标签（新添加的标签）
-        if (remainingTags.length > 0) {
-            orderedTags.push(...remainingTags);
-            // 同时更新tabsOrder以包含新标签
-            remainingTags.forEach(tag => {
-                this.tabsOrder.push(tag.key);
+        // 添加剩余的分类（新添加的分类）
+        if (remainingCategories.length > 0) {
+            orderedCategories.push(...remainingCategories);
+            // 同时更新categoriesOrder以包含新分类
+            remainingCategories.forEach(category => {
+                this.categoriesOrder.push(category.name);
             });
             // 保存更新后的顺序
-            this.saveTabsOrder();
+            this.saveCategoriesOrder();
         }
         
-        return orderedTags;
+        return orderedCategories;
     }
     
-    // 显示标签选择器
-    showTagPicker() {
-        const modal = document.getElementById('tag-picker-modal');
-        const tagNameInput = document.getElementById('tag-name');
-        const tagKeyInput = document.getElementById('tag-key');
+    // 显示分类管理模态框
+    showCategoryManagementModal() {
+        const modal = document.getElementById('category-management-modal');
+        if (modal) {
+            modal.classList.add('show');
+            modal.style.display = 'flex';
+            window.DashTabLibs.utils.addAnimation(modal, 'fadeIn');
+            this.renderCategoryList();
+        }
+    }
+
+    // 隐藏分类管理模态框
+    hideCategoryManagementModal() {
+        const modal = document.getElementById('category-management-modal');
+        if (modal) {
+            modal.classList.remove('show');
+            window.DashTabLibs.utils.addAnimation(modal, 'fadeOut', () => {
+                modal.style.display = 'none';
+            });
+        }
+    }
+
+    // 显示添加新分类模态框
+    showAddCategoryModal() { // 函数功能：显示添加新分类的模态框，并初始化表单
+        const modal = document.getElementById('add-category-modal');
+        const tagNameInput = document.getElementById('add-category-name');
         
         // 清空表单
         tagNameInput.value = '';
-        tagKeyInput.value = '';
         
         // 清除错误信息
-        document.getElementById('tag-name-error').textContent = '';
-        document.getElementById('tag-key-error').textContent = '';
+        document.getElementById('add-category-name-error').textContent = '';
         
         // 显示模态框
         modal.style.display = 'flex';
         
-        // 聚焦到标签名称输入框
+        // 聚焦到tab名称输入框
         setTimeout(() => {
             tagNameInput.focus();
         }, 100);
-        
-        // 绑定事件监听器（如果还未绑定）
-        this.bindTagPickerEvents();
     }
     
-    // 绑定标签选择器事件
-    bindTagPickerEvents() {
-        const modal = document.getElementById('tag-picker-modal');
-        const closeBtn = document.getElementById('close-tag-picker-btn');
-        const cancelBtn = document.getElementById('cancel-tag-picker-btn');
-        const form = document.getElementById('tag-picker-form');
-        const tagNameInput = document.getElementById('tag-name');
-        const tagKeyInput = document.getElementById('tag-key');
-        
-        // 避免重复绑定
-        if (modal.dataset.eventsBound) return;
-        modal.dataset.eventsBound = 'true';
-        
-        // 关闭按钮
-        closeBtn?.addEventListener('click', () => this.hideTagPicker());
-        cancelBtn?.addEventListener('click', () => this.hideTagPicker());
-        
-        // 点击背景关闭
-        modal?.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                this.hideTagPicker();
-            }
-        });
-        
-        // 表单提交
-        form?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleAddNewTag(modal);
-        });
-        
-        // 标签名称输入时自动生成标识
-        tagNameInput?.addEventListener('input', () => {
-            const name = tagNameInput.value.trim();
-            if (name && !tagKeyInput.value) {
-                tagKeyInput.value = this.generateTagKey(name);
-            }
-        });
-    }
-    
-    // 隐藏标签选择器
-    hideTagPicker() {
-        const modal = document.getElementById('tag-picker-modal');
+    // 隐藏添加新分类模态框
+    hideAddCategoryModal() {
+        const modal = document.getElementById('add-category-modal');
+        const form = document.getElementById('add-category-form');
         if (modal) {
             modal.style.display = 'none';
             modal.classList.remove('show');
         }
-    }
-    
-    // 生成标签标识
-    generateTagKey(name) {
-        // 简单的标识生成逻辑
-        const keyMap = {
-            '工作': 'work',
-            '学习': 'study', 
-            '开发': 'dev',
-            '设计': 'design',
-            '生活': 'life',
-            '娱乐': 'entertainment',
-            '技术': 'tech',
-            '新闻': 'news',
-            '购物': 'shopping',
-            '社交': 'social',
-            '游戏': 'game',
-            '音乐': 'music',
-            '视频': 'video',
-            '阅读': 'reading'
-        };
-        
-        if (keyMap[name]) {
-            return keyMap[name];
+        if (form) {
+            form.reset();
         }
-        
-        // 转换为拼音或英文小写
-        return name.toLowerCase().replace(/[^a-z0-9]/g, '');
     }
     
-    // 处理添加新标签
-    async handleAddNewTag(modal) {
-        const nameInput = modal.querySelector('#new-tag-name');
-        const keyInput = modal.querySelector('#new-tag-key');
-        const nameError = modal.querySelector('#tag-name-error');
-        const keyError = modal.querySelector('#tag-key-error');
+    
+    
+    // 处理添加新分类
+    async handleAddNewCategory(e) { // 函数功能：验证并添加新分类，更新列表和UI
+        e.preventDefault();
+        const form = e.target;
+        const nameInput = form.querySelector('#add-category-name');
+        const nameError = form.querySelector('#add-category-name-error');
         
         // 清除之前的错误
         nameError.textContent = '';
-        keyError.textContent = '';
         
         const name = nameInput.value.trim();
-        const key = keyInput.value.trim().toLowerCase();
         
         // 验证输入
         let hasError = false;
         
         if (!name) {
-            nameError.textContent = '请输入标签名称';
+            nameError.textContent = '请输入分类名称';
             hasError = true;
         } else if (name.length > 10) {
-            nameError.textContent = '标签名称不能超过10个字符';
+            nameError.textContent = '分类名称不能超过10个字符';
             hasError = true;
-        }
-        
-        if (!key) {
-            keyError.textContent = '请输入标签标识';
-            hasError = true;
-        } else if (!/^[a-z0-9]+$/.test(key)) {
-            keyError.textContent = '标识只能包含英文字母和数字';
-            hasError = true;
-        } else if (this.availableTags.some(tag => tag.key === key)) {
-            keyError.textContent = '该标识已存在';
+        } else if (this.availableCategories.some(category => category.name === name)) {
+            nameError.textContent = '该分类已存在';
             hasError = true;
         }
         
         if (hasError) return;
         
         try {
-            // 添加新标签
+            // 添加新tab
             const newTag = {
-                key: key,
                 name: name,
                 removable: true
             };
             
-            this.availableTags.push(newTag);
-            this.saveAvailableTags();
+            this.availableCategories.push(newTag);
+            this.categoriesOrder.push(name);
+            this.saveAvailableCategories();
+            this.saveCategoriesOrder();
             
-            // 更新标签筛选器
-            this.updateTagFilter();
+            // 更新分类筛选器和网站表单选择器
+            this.updateCategoryFilter();
+            this.updateSiteTagSelect();
             
-            // 自动切换到新标签
-            this.filterByTag(key);
+            // 自动切换到新分类
+            this.filterByCategory(name);
             
             // 关闭模态框
-            modal.remove();
+            this.hideAddCategoryModal();
+            this.renderCategoryList(); // 重新渲染分类列表
             
-            this.showToast(`标签"${name}"添加成功`, 'success');
+            this.showToast(`分类"${name}"添加成功`, 'success');
         } catch (error) {
-            console.error('添加标签失败:', error);
-            this.showToast('添加标签失败，请重试', 'error');
+            console.error('添加分类失败:', error);
+            this.showToast('添加分类失败，请重试', 'error');
         }
     }
     
-    // 导出标签数据
-    exportTagsData() {
-        try {
-            const exportData = {
-                availableTags: this.availableTags,
-                tabsOrder: this.tabsOrder,
-                currentTag: this.currentTag,
-                exportTime: new Date().toISOString(),
-                version: '1.0'
-            };
-            
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(dataBlob);
-            link.download = `dashtab-tags-${new Date().toISOString().split('T')[0]}.json`;
-            link.click();
-            
-            URL.revokeObjectURL(link.href);
-            this.showToast('标签数据导出成功', 'success');
-        } catch (error) {
-            console.error('导出标签数据失败:', error);
-            this.showToast('导出失败，请重试', 'error');
+    // 删除分类
+    deleteCategory(categoryName) { // 函数功能：删除指定分类，并处理相关网站迁移
+        // 确认删除
+        if (!confirm(`确定要删除分类 "${categoryName}" 吗？\n\n删除后，该分类下的所有网站将被移动到"全部"分类。`)) {
+            return;
         }
-    }
-    
-    // 导入标签数据
-    importTagsData() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
         
-        input.onchange = (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const importData = JSON.parse(e.target.result);
-                    this.handleImportData(importData);
-                } catch (error) {
-                    console.error('解析导入文件失败:', error);
-                    this.showToast('文件格式错误，请选择有效的JSON文件', 'error');
+        try {
+            // 将该tab下的所有网站移动到"全部"分类
+            this.data.sites.forEach(site => {
+                if (site.tag === categoryName) {
+                    site.tag = 'all';
                 }
-            };
-            reader.readAsText(file);
-        };
-        
-        input.click();
-    }
-    
-    // 处理导入的数据
-    handleImportData(importData) {
-        try {
-            // 验证数据格式
-            if (!importData.availableTags || !Array.isArray(importData.availableTags)) {
-                throw new Error('无效的标签数据格式');
+            });
+            
+            // 从availableCategories中移除
+            this.availableCategories = this.availableCategories.filter(category => category.name !== categoryName);
+            
+            // 从categoriesOrder中移除
+            this.categoriesOrder = this.categoriesOrder.filter(name => name !== categoryName);
+            
+            // 如果当前显示的是被删除的tab，切换到"全部"tab
+            if (this.currentCategory === categoryName) {
+                this.currentCategory = 'all';
             }
             
-            // 确认导入
-            const confirmImport = confirm(
-                `确定要导入标签数据吗？\n` +
-                `将导入 ${importData.availableTags.length} 个标签\n` +
-                `当前数据将被覆盖，此操作不可撤销！`
-            );
-            
-            if (!confirmImport) return;
-            
-            // 备份当前数据
-            const backup = {
-                availableTags: [...this.availableTags],
-                tabsOrder: [...this.tabsOrder],
-                currentTag: this.currentTag
-            };
-            
-            try {
-                // 导入新数据
-                this.availableTags = importData.availableTags || [];
-                this.tabsOrder = importData.tabsOrder || [];
-                
-                // 验证导入的标签
-                this.availableTags = this.availableTags.filter(tag => 
-                    tag && tag.key && tag.name && typeof tag.key === 'string' && typeof tag.name === 'string'
-                );
-                
-                // 保存到localStorage
-                this.saveAvailableTags();
-                this.saveTabsOrder();
-                
-                // 设置当前标签
-                const importedCurrentTag = importData.currentTag;
-                if (importedCurrentTag && this.availableTags.some(tag => tag.key === importedCurrentTag)) {
-                    this.currentTag = importedCurrentTag;
-                    localStorage.setItem('dashTabCurrentTag', this.currentTag);
-                } else {
-                    this.currentTag = 'all';
-                    localStorage.setItem('dashTabCurrentTag', 'all');
-                }
-                
-                // 更新UI
-                this.updateTagFilter();
-                this.filterByTag(this.currentTag);
-                
-                this.showToast(`成功导入 ${this.availableTags.length} 个标签`, 'success');
-            } catch (error) {
-                // 恢复备份数据
-                this.availableTags = backup.availableTags;
-                this.tabsOrder = backup.tabsOrder;
-                this.currentTag = backup.currentTag;
-                
-                this.saveAvailableTags();
-                this.saveTabsOrder();
-                localStorage.setItem('dashTabCurrentTag', this.currentTag);
-                
-                throw error;
-            }
-        } catch (error) {
-            console.error('导入标签数据失败:', error);
-            this.showToast('导入失败：' + error.message, 'error');
-        }
-    }
-    
-    // 重置标签数据
-    resetTagsData() {
-        const confirmReset = confirm(
-            '确定要重置所有标签数据吗？\n' +
-            '这将删除所有自定义标签并恢复默认设置\n' +
-            '此操作不可撤销！'
-        );
-        
-        if (!confirmReset) return;
-        
-        try {
-            // 重置为默认标签
-            this.availableTags = [
-                { key: 'all', name: '全部', removable: false },
-                { key: 'work', name: '工作', removable: false },
-                { key: 'study', name: '学习', removable: false },
-                { key: 'dev', name: '开发', removable: false },
-                { key: 'design', name: '设计', removable: false },
-                { key: 'life', name: '生活', removable: false },
-                { key: 'entertainment', name: '娱乐', removable: false }
-            ];
-            
-            this.tabsOrder = [];
-            this.currentTag = 'all';
-            
-            // 保存到localStorage
-            this.saveAvailableTags();
-            this.saveTabsOrder();
-            localStorage.setItem('dashTabCurrentTag', 'all');
+            // 保存数据
+            this.saveAvailableCategories();
+            this.saveCategoriesOrder();
+            this.saveData();
             
             // 更新UI
-            this.updateTagFilter();
-            this.filterByTag('all');
+            this.updateCategoryFilter();
+            this.updateSiteTagSelect();
+            this.render();
             
-            this.showToast('标签数据已重置为默认设置', 'success');
+            // 显示成功消息
+            this.showToast('分类删除成功', 'success');
+            this.renderCategoryList(); // 重新渲染分类列表
         } catch (error) {
-            console.error('重置标签数据失败:', error);
-            this.showToast('重置失败，请重试', 'error');
+            console.error('删除分类失败:', error);
+            this.showToast('删除分类失败，请重试', 'error');
         }
     }
+    
+    // 获取分类名称的辅助方法
+    getCategoryName(categoryName) { // 函数功能：根据键查找分类名称
+        const category = this.availableCategories.find(c => c.name === categoryName);
+        return category ? category.name : categoryName;
+    }
+
+    // 渲染分类列表
+    renderCategoryList() {
+        const categoryListContainer = document.getElementById('category-list');
+        if (!categoryListContainer) return;
+
+        categoryListContainer.innerHTML = '';
+
+        if (this.availableCategories.length === 0) {
+            categoryListContainer.innerHTML = '<p class="empty-list-message">暂无自定义分类</p>';
+            return;
+        }
+
+        this.availableCategories.forEach(category => {
+            const categoryItem = document.createElement('div');
+            categoryItem.className = 'category-list-item';
+            categoryItem.innerHTML = `
+                <span class="category-name">${category.name}</span>
+                <div class="category-actions">
+                    ${category.removable ? `<button class="modern-btn danger small delete-category-btn" data-category-name="${category.name}">删除</button>` : ''}
+                </div>
+            `;
+            categoryListContainer.appendChild(categoryItem);
+        });
+
+        // 绑定删除事件
+        categoryListContainer.querySelectorAll('.delete-category-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const categoryName = e.target.dataset.categoryName;
+                this.deleteCategory(categoryName);
+            });
+        });
+    }
+    
+    // 编辑分类名称
+    editCategoryName(categoryName, categoryContentElement) { // 函数功能：编辑指定分类的名称
+        const category = this.availableCategories.find(c => c.name === categoryName);
+        if (!category || !category.removable) return;
+        
+        const originalName = category.name;
+        
+        // 创建输入框
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = originalName;
+        input.className = 'tab-edit-input';
+        input.style.cssText = `
+            background: transparent;
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: inherit;
+            width: 100%;
+            outline: none;
+        `;
+        
+        // 替换文本内容为输入框
+        categoryContentElement.textContent = '';
+        categoryContentElement.appendChild(input);
+        
+        // 选中文本
+        input.focus();
+        input.select();
+        
+        // 保存编辑
+        const saveEdit = () => {
+            const newName = input.value.trim();
+            
+            if (!newName) {
+                // 如果为空，恢复原名称
+                categoryContentElement.textContent = originalName;
+                return;
+            }
+            
+            if (newName.length > 10) {
+                this.showToast('tab名称不能超过10个字符', 'error');
+                categoryContentElement.textContent = originalName;
+                return;
+            }
+
+            if (newName !== originalName && this.availableCategories.some(c => c.name === newName)) {
+                this.showToast('该分类已存在', 'error');
+                categoryContentElement.textContent = originalName;
+                return;
+            }
+            
+            if (newName !== originalName) {
+                 // 更新tab名称
+                 category.name = newName;
+                 category.key = newName;
+
+                 // 更新网站中的分类
+                 this.data.sites.forEach(site => {
+                    if (site.tag === originalName) {
+                        site.tag = newName;
+                    }
+                });
+
+                 this.saveAvailableCategories();
+                 this.saveData();
+                 this.updateSiteTagSelect(); // 更新网站表单中的tab选择器
+                 this.showToast('Tab名称修改成功', 'success');
+                 this.renderCategoryList(); // 重新渲染分类列表
+             }
+            
+            // 恢复文本显示
+            categoryContentElement.textContent = newName;
+        };
+        
+        // 取消编辑
+        const cancelEdit = () => {
+            categoryContentElement.textContent = originalName;
+        };
+        
+        // 绑定事件
+        input.addEventListener('blur', saveEdit);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                input.blur(); // 触发保存
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                cancelEdit();
+            }
+        });
+    }
+    
+    
     
     // 显示消息提示
     showToast(message, type = 'success') {
@@ -1767,7 +1818,7 @@ class DashTab {
         this.hideContextMenu();
     }
     
-    // 在新标签页打开网站
+    // 在新tab打开网站
     openSiteInNewTab() {
         if (!this.contextMenuSite) return;
         

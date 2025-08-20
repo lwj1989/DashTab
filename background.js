@@ -50,14 +50,7 @@ const defaultSettings = {
 // 初始化默认数据
 const defaultData = {
     sites: [],
-    groups: {
-        work: { name: '工作', sites: [] },
-        study: { name: '学习', sites: [] },
-        dev: { name: '开发', sites: [] },
-        design: { name: '设计', sites: [] },
-        life: { name: '生活', sites: [] },
-        entertainment: { name: '娱乐', sites: [] }
-    },
+    groups: [],
     visitStats: {},
     lastBackup: null
 };
@@ -137,15 +130,15 @@ async function initializeExtension() {
     }
 }
 
-// 处理新标签页打开
+// 处理新tab打开
 chrome.tabs.onCreated.addListener((tab) => {
-    // 如果是新标签页，确保使用我们的页面
+    // 如果是新tab，确保使用我们的页面
     if (tab.url === 'chrome://newtab/' || tab.pendingUrl === 'chrome://newtab/') {
-        console.log('新标签页已创建');
+        console.log('新tab已创建');
     }
 });
 
-// 处理标签页更新（用于统计访问频率）
+// 处理tab更新（用于统计访问频率）
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     if (changeInfo.status === 'complete' && tab.url && 
         !tab.url.startsWith('chrome://') && 
@@ -202,7 +195,7 @@ async function updateVisitStats(url) {
 
 // 处理扩展图标点击
 chrome.action.onClicked.addListener((tab) => {
-    // 如果当前标签页不是新标签页，打开新标签页
+    // 如果当前tab不是新tab，打开新tab
     if (!tab.url.includes(chrome.runtime.getURL('popup.html'))) {
         chrome.tabs.create({
             url: chrome.runtime.getURL('popup.html')
@@ -339,7 +332,7 @@ chrome.storage.onChanged.addListener(async (changes, namespace) => {
     if (namespace === 'local') {
         console.log('本地存储已更新:', Object.keys(changes));
         
-        // 通知所有打开的标签页数据已更新
+        // 通知所有打开的tab数据已更新
         try {
             const tabs = await chrome.tabs.query({});
             const dashTabUrl = chrome.runtime.getURL('popup.html');
@@ -352,13 +345,13 @@ chrome.storage.onChanged.addListener(async (changes, namespace) => {
                             changes: changes
                         });
                     } catch (error) {
-                        // 忽略无法发送消息的标签页（可能已关闭或未准备好）
-                        console.debug('无法向标签页发送消息:', tab.id);
+                        // 忽略无法发送消息的tab（可能已关闭或未准备好）
+                        console.debug('无法向tab发送消息:', tab.id);
                     }
                 }
             }
         } catch (error) {
-            console.error('通知标签页更新失败:', error);
+            console.error('通知tab更新失败:', error);
         }
     }
 });

@@ -60,9 +60,9 @@
             </div>
         </div>
 
-        <!-- 标签筛选栏 - 顶部显著位置 -->
+        <!-- tab筛选栏 - 顶部显著位置 -->
         <div class="tag-filter-container">
-            <!-- 最常访问标签 - 置于首位 -->
+            <!-- 最常访问tab - 置于首位 -->
             <div class="tag-filter" id="tag-filter">
                 <div class="tag-tab active" data-group="all">全部</div>
                 <div class="tag-tab" data-group="work">工作</div>
@@ -162,21 +162,27 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="site-tag">标签分类 <span class="required">*</span></label>
+                            <label for="site-tag">分类 <span class="required">*</span></label>
                             <div class="tag-input-container">
                                 <select id="site-tag" class="modern-select" required>
-                                    <option value="">请选择标签</option>
+                                    <option value="">请选择tab</option>
                                     <option value="work">工作</option>
                                     <option value="study">学习</option>
                                     <option value="dev">开发</option>
                                     <option value="design">设计</option>
                                     <option value="life">生活</option>
                                     <option value="entertainment">娱乐</option>
-                                    <option value="custom">创建新标签...</option>
+                                    <option value="custom">创建新分类...</option>
                                 </select>
-                                <input type="text" id="custom-tag-input" placeholder="输入新标签名称" style="display: none;" maxlength="10">
+                                <input type="text" id="custom-tag-input" placeholder="输入新tab名称" style="display: none;" maxlength="10">
                             </div>
-                            <div class="error-message" id="tag-error"></div>
+                            <div class="category-management-buttons">
+                                <button type="button" class="modern-btn secondary" id="manage-categories-btn">
+                                    管理分类
+                                </button>
+                                
+                            </div>
+                            <div class="error-message" id="tab-error"></div>
                         </div>
                     </div>
                     
@@ -244,8 +250,8 @@
                         </div>
                         <div class="setting-control">
                             <select id="search-open-mode" class="modern-select">
-                                <option value="current">当前标签页</option>
-                                <option value="new">新标签页</option>
+                                <option value="current">当前tab</option>
+                                <option value="new">新tab</option>
                             </select>
                         </div>
                     </div>
@@ -256,8 +262,8 @@
                         </div>
                         <div class="setting-control">
                             <select id="site-open-mode" class="modern-select">
-                                <option value="current">当前标签页</option>
-                                <option value="new">新标签页</option>
+                                <option value="current">当前tab</option>
+                                <option value="new">新tab</option>
                             </select>
                         </div>
                     </div>
@@ -274,30 +280,7 @@
                     </div>
                 </div>
 
-                <!-- 标签管理 -->
-                <div class="settings-section">
-                    <h4 class="settings-section-title">标签管理</h4>
-                    <div class="data-management-grid">
-                        <button class="data-btn export" id="export-tags">
-                            <div class="data-btn-content">
-                                <span class="data-btn-title">导出标签</span>
-                                <span class="data-btn-desc">备份标签配置</span>
-                            </div>
-                        </button>
-                        <button class="data-btn import" id="import-tags">
-                            <div class="data-btn-content">
-                                <span class="data-btn-title">导入标签</span>
-                                <span class="data-btn-desc">恢复标签配置</span>
-                            </div>
-                        </button>
-                        <button class="data-btn danger" id="reset-tags">
-                            <div class="data-btn-content">
-                                <span class="data-btn-title">重置标签</span>
-                                <span class="data-btn-desc">恢复默认标签</span>
-                            </div>
-                        </button>
-                    </div>
-                </div>
+                
 
                 <!-- 数据管理 -->
                 <div class="settings-section">
@@ -361,33 +344,48 @@
         </div>
     </div>
 
-    <!-- 标签选择器模态框 -->
-    <div class="modal" id="tag-picker-modal">
-        <div class="modal-content tag-picker-modal">
+    <!-- 分类管理模态框 -->
+    <div class="modal" id="category-management-modal">
+        <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">添加新标签</h3>
-                <button class="close-btn" id="close-tag-picker-btn">
+                <h3 class="modal-title">分类管理</h3>
+                <button class="close-btn" id="close-category-management-btn">
                     <i class="icon icon-times"></i>
                 </button>
             </div>
-            <form id="tag-picker-form">
-                <div class="form-group">
-                    <label for="tag-name">标签名称 <span class="required">*</span></label>
-                    <input type="text" id="tag-name" placeholder="输入标签名称" required maxlength="10">
-                    <div class="error-message" id="tag-name-error"></div>
+            <div class="category-management-content">
+                <div class="category-list-grid" id="category-list">
+                    <!-- 分类列表将通过JavaScript动态生成 -->
                 </div>
-                
+                <div class="add-category-section">
+                    <button class="modern-btn primary" id="open-add-category-modal-btn">
+                        <i class="icon icon-plus"></i> 添加新分类
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加新分类模态框 -->
+    <div class="modal" id="add-category-modal">
+        <div class="modal-content tag-picker-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">添加新分类</h3>
+                <button class="close-btn" id="close-add-category-modal-btn">
+                    <i class="icon icon-times"></i>
+                </button>
+            </div>
+            <form id="add-category-form">
                 <div class="form-group">
-                    <label for="tag-key">标签标识 <span class="required">*</span></label>
-                    <input type="text" id="tag-key" placeholder="自动生成或手动输入" required maxlength="20">
-                    <small class="form-help">用于内部识别的唯一标识，建议使用英文字母</small>
-                    <div class="error-message" id="tag-key-error"></div>
+                    <label for="add-category-name">分类名称 <span class="required">*</span></label>
+                    <input type="text" id="add-category-name" placeholder="输入分类名称" required maxlength="10">
+                    <div class="error-message" id="add-category-name-error"></div>
                 </div>
                 
                 <div class="form-actions">
-                    <button type="button" class="cancel-btn" id="cancel-tag-picker-btn">取消</button>
-                    <button type="submit" class="submit-btn" id="submit-tag-btn">
-                        添加标签
+                    <button type="button" class="cancel-btn" id="cancel-add-category-btn">取消</button>
+                    <button type="submit" class="submit-btn" id="submit-add-category-btn">
+                        添加分类
                     </button>
                 </div>
             </form>
@@ -403,7 +401,7 @@
             <i class="icon icon-trash"></i> 删除
         </div>
         <div class="context-item" id="open-new-tab">
-            <i class="icon icon-external-link"></i> 新标签页打开
+            <i class="icon icon-external-link"></i> 新tab打开
         </div>
     </div>
 

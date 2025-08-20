@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "DashTab - 导航扩展",
   "version": "1.0.1",
-  "description": "一个现代化的Chrome新标签页导航扩展，支持本地存储、搜索、网站管理等功能",
+  "description": "一个现代化的Chrome新tab导航扩展，支持本地存储、搜索、网站管理等功能",
   "permissions": [
     "storage",
     "tabs",
