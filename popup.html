@@ -64,7 +64,7 @@
         <div class="tag-filter-container">
             <!-- 最常访问标签 - 置于首位 -->
             <div class="tag-filter" id="tag-filter">
-                <div class="tag-tab active" data-group="all">全部标签</div>
+                <div class="tag-tab active" data-group="all">全部</div>
                 <div class="tag-tab" data-group="work">工作</div>
                 <div class="tag-tab" data-group="study">学习</div>
                 <div class="tag-tab" data-group="dev">开发</div>
@@ -274,6 +274,31 @@
                     </div>
                 </div>
 
+                <!-- 标签管理 -->
+                <div class="settings-section">
+                    <h4 class="settings-section-title">标签管理</h4>
+                    <div class="data-management-grid">
+                        <button class="data-btn export" id="export-tags">
+                            <div class="data-btn-content">
+                                <span class="data-btn-title">导出标签</span>
+                                <span class="data-btn-desc">备份标签配置</span>
+                            </div>
+                        </button>
+                        <button class="data-btn import" id="import-tags">
+                            <div class="data-btn-content">
+                                <span class="data-btn-title">导入标签</span>
+                                <span class="data-btn-desc">恢复标签配置</span>
+                            </div>
+                        </button>
+                        <button class="data-btn danger" id="reset-tags">
+                            <div class="data-btn-content">
+                                <span class="data-btn-title">重置标签</span>
+                                <span class="data-btn-desc">恢复默认标签</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- 数据管理 -->
                 <div class="settings-section">
                     <h4 class="settings-section-title">数据管理</h4>
@@ -333,6 +358,39 @@
                     </form>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- 标签选择器模态框 -->
+    <div class="modal" id="tag-picker-modal">
+        <div class="modal-content tag-picker-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">添加新标签</h3>
+                <button class="close-btn" id="close-tag-picker-btn">
+                    <i class="icon icon-times"></i>
+                </button>
+            </div>
+            <form id="tag-picker-form">
+                <div class="form-group">
+                    <label for="tag-name">标签名称 <span class="required">*</span></label>
+                    <input type="text" id="tag-name" placeholder="输入标签名称" required maxlength="10">
+                    <div class="error-message" id="tag-name-error"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="tag-key">标签标识 <span class="required">*</span></label>
+                    <input type="text" id="tag-key" placeholder="自动生成或手动输入" required maxlength="20">
+                    <small class="form-help">用于内部识别的唯一标识，建议使用英文字母</small>
+                    <div class="error-message" id="tag-key-error"></div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="cancel-btn" id="cancel-tag-picker-btn">取消</button>
+                    <button type="submit" class="submit-btn" id="submit-tag-btn">
+                        添加标签
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 

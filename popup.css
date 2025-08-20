@@ -727,13 +727,13 @@ body {
 .modal-content {
     background: var(--bg-secondary);
     width: 90%;
-    max-width: 500px;
+    max-width: 480px;
     border-radius: var(--border-radius);
-    padding: 30px;
+    padding: 20px;
     box-shadow: var(--shadow-lg);
     position: relative;
     animation: slideUp 0.3s ease;
-    max-height: 80vh;
+    max-height: 85vh;
     overflow-y: auto;
 }
 
@@ -752,13 +752,13 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
-    padding-bottom: 15px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .modal-title {
-    font-size: 22px;
+    font-size: 18px;
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -785,13 +785,13 @@ body {
 
 /* 表单样式 */
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 14px;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 8px;
-    font-size: 14px;
+    margin-bottom: 6px;
+    font-size: 13px;
     color: var(--text-secondary);
     font-weight: 500;
 }
@@ -803,12 +803,12 @@ body {
 .form-group input,
 .form-group select {
     width: 100%;
-    padding: 14px;
-    border-radius: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: var(--card-bg);
     color: var(--text-primary);
-    font-size: 16px;
+    font-size: 14px;
     transition: var(--transition);
 }
 
@@ -883,20 +883,21 @@ body {
 
 .submit-btn {
     width: 100%;
-    padding: 14px;
-    border-radius: 12px;
+    padding: 10px 16px;
+    border-radius: 8px;
     background: var(--accent);
     color: white;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     border: none;
     cursor: pointer;
     transition: var(--transition);
-    margin-top: 10px;
+    margin-top: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
+    height: 40px;
 }
 
 .submit-btn:hover:not(:disabled) {
@@ -913,24 +914,24 @@ body {
 .settings-content {
     display: flex;
     flex-direction: column;
-    gap: 32px;
-    padding: 8px 0;
+    gap: 20px;
+    padding: 4px 0;
 }
 
 .settings-section {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    padding: 24px;
+    padding: 16px;
     box-shadow: var(--shadow-sm);
 }
 
 .settings-section-title {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     color: var(--text-primary);
-    margin: 0 0 20px 0;
-    padding-bottom: 12px;
+    margin: 0 0 14px 0;
+    padding-bottom: 8px;
     border-bottom: 1px solid var(--separator-color);
 }
 
@@ -938,7 +939,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    padding: 16px 0;
+    padding: 12px 0;
     border-bottom: 1px solid var(--separator-color);
 }
 
@@ -976,18 +977,19 @@ body {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    padding: 10px 16px;
-    font-size: 14px;
+    padding: 8px 12px;
+    font-size: 13px;
     font-weight: 500;
     color: var(--text-primary);
-    min-width: 160px;
+    min-width: 140px;
     cursor: pointer;
     transition: var(--transition);
     background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-    background-position: right 12px center;
+    background-position: right 10px center;
     background-repeat: no-repeat;
-    background-size: 16px;
-    padding-right: 40px;
+    background-size: 14px;
+    padding-right: 32px;
+    height: 36px;
 }
 
 .modern-select:hover {
@@ -1031,20 +1033,20 @@ body {
 /* 数据管理网格 */
 .data-management-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 16px;
-    margin-top: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px;
+    margin-top: 6px;
 }
 
 .data-btn {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    padding: 20px 16px;
+    padding: 14px 12px;
     cursor: pointer;
     transition: var(--transition);
     text-align: center;
-    min-height: 80px;
+    min-height: 64px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1057,13 +1059,13 @@ body {
 }
 
 .data-btn-title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text-primary);
 }
 
 .data-btn-desc {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-secondary);
     line-height: 1.3;
 }
@@ -1214,23 +1216,130 @@ body {
 
 /* 添加网站弹窗美化 */
 .add-site-modal {
-    max-width: 600px;
-    width: 95%;
+    max-width: 520px;
+    width: 92%;
 }
 
 .form-container {
-    padding: 8px 0;
+    padding: 4px 0;
+}
+
+/* 标签选择器模态框样式 */
+.tag-picker-modal {
+    max-width: 480px;
+    width: 90%;
+}
+
+.tag-picker-modal .modal-body {
+    padding: 20px 24px;
+}
+
+.tag-picker-modal .form-group {
+    margin-bottom: 20px;
+}
+
+.tag-picker-modal .form-group:last-child {
+    margin-bottom: 0;
+}
+
+.tag-picker-modal label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.tag-picker-modal .required {
+    color: var(--accent);
+}
+
+.tag-picker-modal input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 14px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    transition: border-color 0.2s ease;
+}
+
+.tag-picker-modal input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+}
+
+.tag-picker-modal .error-message {
+    color: var(--error);
+    font-size: 12px;
+    margin-top: 4px;
+    min-height: 16px;
+}
+
+.tag-picker-modal .form-help {
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin-top: 4px;
+    display: block;
+}
+
+.tag-picker-modal .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.tag-picker-modal .cancel-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.tag-picker-modal .cancel-btn:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.tag-picker-modal .submit-btn {
+    padding: 8px 16px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.tag-picker-modal .submit-btn:hover {
+    background: var(--accent);
+    filter: brightness(1.1);
+}
+
+.tag-picker-modal .submit-btn:disabled {
+    background: var(--text-secondary);
+    cursor: not-allowed;
+    opacity: 0.6;
 }
 
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 24px;
+    gap: 16px;
+    margin-bottom: 18px;
 }
 
 .form-row:last-of-type {
-    margin-bottom: 32px;
+    margin-bottom: 20px;
 }
 
 .form-row .form-group {
@@ -1245,14 +1354,14 @@ body {
 .color-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: 6px;
+    margin-bottom: 8px;
 }
 
 .color-option {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
     cursor: pointer;
     transition: var(--transition);
     border: 2px solid transparent;
@@ -1285,22 +1394,24 @@ body {
 /* 表单操作按钮 */
 .form-actions {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     justify-content: flex-end;
-    padding-top: 8px;
+    padding-top: 12px;
     border-top: 1px solid var(--separator-color);
+    margin-top: 8px;
 }
 
 .cancel-btn {
-    padding: 12px 24px;
+    padding: 10px 20px;
     border-radius: 8px;
     background: var(--bg-secondary);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
     cursor: pointer;
     transition: var(--transition);
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
+    height: 40px;
 }
 
 .cancel-btn:hover {

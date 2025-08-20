@@ -1,43 +1,68 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <defs>
-    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#c4a7e7;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#9ccfd8;stop-opacity:1" />
+    <!-- 主渐变 - 现代蓝紫色调 -->
+    <linearGradient id="mainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#764ba2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f093fb;stop-opacity:1" />
     </linearGradient>
+    
+    <!-- 内部渐变 -->
+    <linearGradient id="innerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4facfe;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 阴影滤镜 -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="rgba(0,0,0,0.3)"/>
+    </filter>
+    
+    <!-- 内发光滤镜 -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/> 
+      </feMerge>
+    </filter>
   </defs>
   
-  <!-- 背景圆形 -->
-  <circle cx="64" cy="64" r="56" fill="url(#gradient)" stroke="#575279" stroke-width="2"/>
+  <!-- 外圈背景 -->
+  <circle cx="64" cy="64" r="58" fill="url(#mainGradient)" filter="url(#shadow)"/>
   
-  <!-- 导航图标 -->
+  <!-- 内圈装饰 -->
+  <circle cx="64" cy="64" r="48" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+  
+  <!-- 中心图标区域 -->
   <g transform="translate(64,64)">
-    <!-- 指南针外圈 -->
-    <circle cx="0" cy="0" r="36" fill="none" stroke="#fff" stroke-width="3" opacity="0.8"/>
-    
-    <!-- 指南针内圈 -->
-    <circle cx="0" cy="0" r="28" fill="none" stroke="#fff" stroke-width="2" opacity="0.6"/>
-    
-    <!-- 指南针指针 -->
-    <g stroke="#fff" stroke-width="2" fill="#fff">
-      <!-- 北指针 -->
-      <polygon points="0,-25 -4,-15 4,-15" fill="#fff"/>
-      <!-- 南指针 -->
-      <polygon points="0,25 -4,15 4,15" fill="#e0def4" opacity="0.8"/>
-      <!-- 东西指针 -->
-      <polygon points="25,0 15,-4 15,4" fill="#e0def4" opacity="0.6"/>
-      <polygon points="-25,0 -15,-4 -15,4" fill="#e0def4" opacity="0.6"/>
+    <!-- 导航指针主体 -->
+    <g fill="white" filter="url(#glow)">
+      <!-- 主指针 - 上 -->
+      <path d="M 0,-32 L -8,-16 L -3,-16 L -3,-8 L 3,-8 L 3,-16 L 8,-16 Z" fill="white" opacity="0.95"/>
+      
+      <!-- 副指针 - 右 -->
+      <path d="M 32,0 L 16,-8 L 16,-3 L 8,-3 L 8,3 L 16,3 L 16,8 Z" fill="white" opacity="0.7"/>
+      
+      <!-- 副指针 - 下 -->
+      <path d="M 0,32 L -8,16 L -3,16 L -3,8 L 3,8 L 3,16 L 8,16 Z" fill="white" opacity="0.5"/>
+      
+      <!-- 副指针 - 左 -->
+      <path d="M -32,0 L -16,-8 L -16,-3 L -8,-3 L -8,3 L -16,3 L -16,8 Z" fill="white" opacity="0.5"/>
     </g>
     
-    <!-- 中心点 -->
-    <circle cx="0" cy="0" r="3" fill="#fff"/>
+    <!-- 中心圆点 -->
+    <circle cx="0" cy="0" r="6" fill="white" opacity="0.9"/>
+    <circle cx="0" cy="0" r="3" fill="url(#innerGradient)"/>
     
-    <!-- 方向标记 -->
-    <text x="0" y="-44" text-anchor="middle" font-family="Arial" font-size="8" fill="#fff" font-weight="bold">N</text>
-    <text x="44" y="3" text-anchor="middle" font-family="Arial" font-size="8" fill="#fff" font-weight="bold">E</text>
-    <text x="0" y="50" text-anchor="middle" font-family="Arial" font-size="8" fill="#fff" font-weight="bold">S</text>
-    <text x="-44" y="3" text-anchor="middle" font-family="Arial" font-size="8" fill="#fff" font-weight="bold">W</text>
+    <!-- 装饰性圆环 -->
+    <circle cx="0" cy="0" r="20" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1" stroke-dasharray="2,4"/>
   </g>
   
-  <!-- 标题文字 -->
-  <text x="64" y="110" text-anchor="middle" font-family="Arial" font-size="10" fill="#575279" font-weight="bold">DashTab</text>
+  <!-- 底部标识 -->
+  <g transform="translate(64,108)">
+    <rect x="-24" y="-6" width="48" height="12" rx="6" fill="rgba(255,255,255,0.1)"/>
+    <text x="0" y="2" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" 
+          font-size="9" font-weight="600" fill="white" opacity="0.8">DashTab</text>
+  </g>
 </svg>

@@ -15,19 +15,82 @@ class DashTab {
             searchOpenMode: 'current', // current 或 new
             siteOpenMode: 'current'    // current 或 new
         };
-        // 恢复保存的标签状态，默认为frequent
+        // Tab状态管理 - 完善的记忆功能
         this.currentTag = localStorage.getItem('dashTabCurrentTag') || 'all';
+        this.tabsOrder = this.loadTabsOrder(); // 加载Tab顺序
+        this.availableTags = this.loadAvailableTags(); // 加载可用标签列表
         this.currentPage = 1;
         this.sitesPerPage = 30; // 每页显示的网站数量
         this.draggedSite = null;
         this.contextMenuSite = null;
         this.sortableInstance = null;
+        this.tagSortableInstance = null;
         this.searchInstance = null;
         
         // 确保库已加载
         this.waitForLibraries().then(() => {
             this.init();
         });
+    }
+    
+    // 加载Tab顺序配置
+    loadTabsOrder() {
+        try {
+            const savedOrder = localStorage.getItem('dashTabTabsOrder');
+            return savedOrder ? JSON.parse(savedOrder) : [];
+        } catch (error) {
+            console.warn('加载Tab顺序失败:', error);
+            return [];
+        }
+    }
+    
+    // 保存Tab顺序配置
+    saveTabsOrder() {
+        try {
+            localStorage.setItem('dashTabTabsOrder', JSON.stringify(this.tabsOrder));
+        } catch (error) {
+            console.error('保存Tab顺序失败:', error);
+        }
+    }
+    
+    // 加载可用标签列表
+    loadAvailableTags() {
+        try {
+            const savedTags = localStorage.getItem('dashTabAvailableTags');
+            if (savedTags) {
+                return JSON.parse(savedTags);
+            }
+            // 默认标签列表
+            return [
+                { key: 'all', name: '全部', removable: false },
+                { key: 'work', name: '工作', removable: true },
+                { key: 'study', name: '学习', removable: true },
+                { key: 'dev', name: '开发', removable: true },
+                { key: 'design', name: '设计', removable: true },
+                { key: 'life', name: '生活', removable: true },
+                { key: 'entertainment', name: '娱乐', removable: true }
+            ];
+        } catch (error) {
+            console.warn('加载可用标签失败:', error);
+            return [
+                { key: 'all', name: '全部', removable: false },
+                { key: 'work', name: '工作', removable: true },
+                { key: 'study', name: '学习', removable: true },
+                { key: 'dev', name: '开发', removable: true },
+                { key: 'design', name: '设计', removable: true },
+                { key: 'life', name: '生活', removable: true },
+                { key: 'entertainment', name: '娱乐', removable: true }
+            ];
+        }
+    }
+    
+    // 保存可用标签列表
+    saveAvailableTags() {
+        try {
+            localStorage.setItem('dashTabAvailableTags', JSON.stringify(this.availableTags));
+        } catch (error) {
+            console.error('保存可用标签失败:', error);
+        }
     }
     
     // 等待库加载完成
@@ -303,13 +366,19 @@ class DashTab {
             const { oldIndex, newIndex } = evt;
             if (oldIndex === newIndex) return;
             
-            // 获取标签顺序
-            const tagElements = document.querySelectorAll('.tag-tab');
-            const tagOrder = Array.from(tagElements).map(tab => tab.dataset.group);
+            // 获取当前标签顺序（排除添加标签按钮）
+            const tagElements = document.querySelectorAll('.tag-tab:not(.add-tag-btn)');
+            const newTabsOrder = Array.from(tagElements).map(tab => tab.dataset.group);
             
-            // 保存标签顺序到本地存储和设置中
-            this.settings.tagOrder = tagOrder;
-            localStorage.setItem('dashTabTagOrder', JSON.stringify(tagOrder));
+            // 更新tabsOrder属性
+            this.tabsOrder = newTabsOrder;
+            
+            // 保存到localStorage
+            this.saveTabsOrder();
+            
+            // 兼容旧版本：同时保存到settings中
+            this.settings.tagOrder = newTabsOrder;
+            localStorage.setItem('dashTabTagOrder', JSON.stringify(newTabsOrder));
             
             // 保存设置
             await this.saveSettings();
@@ -323,27 +392,34 @@ class DashTab {
     
     // 应用标签排序
     applyTagOrder() {
-        // 尝试从本地存储获取标签顺序
-        const savedOrder = localStorage.getItem('dashTabTagOrder');
-        let tagOrder = null;
+        // 优先使用新的tabsOrder属性
+        let tagOrder = this.tabsOrder;
         
-        if (savedOrder) {
-            try {
-                tagOrder = JSON.parse(savedOrder);
-                this.settings.tagOrder = tagOrder; // 同步到设置中
-            } catch (e) {
-                console.warn('解析标签顺序失败:', e);
+        // 如果tabsOrder为空，尝试从旧版本兼容
+        if (!tagOrder || tagOrder.length === 0) {
+            const savedOrder = localStorage.getItem('dashTabTagOrder');
+            if (savedOrder) {
+                try {
+                    tagOrder = JSON.parse(savedOrder);
+                    this.tabsOrder = tagOrder; // 同步到新属性
+                    this.saveTabsOrder(); // 保存到新存储位置
+                } catch (e) {
+                    console.warn('解析标签顺序失败:', e);
+                }
+            } else if (this.settings.tagOrder) {
+                tagOrder = this.settings.tagOrder;
+                this.tabsOrder = tagOrder;
+                this.saveTabsOrder();
             }
-        } else if (this.settings.tagOrder) {
-            tagOrder = this.settings.tagOrder;
         }
         
-        if (!tagOrder) return;
+        if (!tagOrder || tagOrder.length === 0) return;
         
         const container = document.getElementById('tag-filter');
         if (!container) return;
         
-        const tagElements = Array.from(container.querySelectorAll('.tag-tab'));
+        const tagElements = Array.from(container.querySelectorAll('.tag-tab:not(.add-tag-btn)'));
+        const addTagBtn = container.querySelector('.add-tag-btn');
         
         // 按照保存的顺序重新排列标签
         tagOrder.forEach(tagKey => {
@@ -352,6 +428,11 @@ class DashTab {
                 container.appendChild(tagElement);
             }
         });
+        
+        // 确保添加标签按钮始终在最后
+        if (addTagBtn) {
+            container.appendChild(addTagBtn);
+        }
     }
     
     // 获取用于排序的网站列表
@@ -500,6 +581,15 @@ class DashTab {
         // 右键菜单
         document.addEventListener('contextmenu', (e) => this.handleContextMenu(e));
         document.addEventListener('click', () => this.hideContextMenu());
+        
+        // 标签管理按钮
+        const exportTagsBtn = document.getElementById('export-tags');
+        const importTagsBtn = document.getElementById('import-tags');
+        const resetTagsBtn = document.getElementById('reset-tags');
+        
+        exportTagsBtn?.addEventListener('click', () => this.exportTagsData());
+        importTagsBtn?.addEventListener('click', () => this.importTagsData());
+        resetTagsBtn?.addEventListener('click', () => this.resetTagsData());
         
         // 数据管理按钮
         const exportBtn = document.getElementById('export-data');
@@ -1102,46 +1192,412 @@ class DashTab {
         });
     }
     
-    // 更新标签筛选
+    // 更新标签筛选 - 支持动态标签管理
     updateTagFilter() {
         const container = document.getElementById('tag-filter');
         if (!container) return;
         
-        // 获取已有的标签
-        const existingTabs = container.querySelectorAll('.tag-tab');
-        
-        // 如果标签已存在，不需要重新创建
-        if (existingTabs.length > 0) return;
-        
-        // 创建标签
-        const tags = [
-            { key: 'all', name: '全部标签' },
-            { key: 'work', name: '工作' },
-            { key: 'study', name: '学习' },
-            { key: 'dev', name: '开发' },
-            { key: 'design', name: '设计' },
-            { key: 'life', name: '生活' },
-            { key: 'entertainment', name: '娱乐' }
-        ];
-        
+        // 清空容器
         container.innerHTML = '';
         
-        tags.forEach(tag => {
-            const tabElement = document.createElement('div');
-            tabElement.className = 'tag-tab';
-            if (tag.key === this.currentTag) {
-                tabElement.classList.add('active');
+        // 如果没有可用标签，显示提示信息
+        if (this.availableTags.length === 0) {
+            const emptyTip = document.createElement('div');
+            emptyTip.className = 'tag-empty-tip';
+            emptyTip.textContent = '暂无标签，请添加';
+            container.appendChild(emptyTip);
+        } else {
+            // 按照保存的顺序或默认顺序渲染标签
+            const orderedTags = this.getOrderedTags();
+            
+            orderedTags.forEach(tag => {
+                const tabElement = document.createElement('div');
+                tabElement.className = 'tag-tab';
+                if (tag.key === this.currentTag) {
+                    tabElement.classList.add('active');
+                }
+                tabElement.dataset.group = tag.key;
+                tabElement.textContent = tag.name;
+                
+                // 添加点击事件
+                tabElement.addEventListener('click', () => this.filterByTag(tag.key));
+                
+                container.appendChild(tabElement);
+            });
+        }
+        
+        // 添加"添加标签"按钮 - 固定在最右侧
+        const addTagBtn = document.createElement('div');
+        addTagBtn.className = 'tag-tab add-tag-btn';
+        addTagBtn.innerHTML = '<i class="icon icon-plus"></i> 添加标签';
+        addTagBtn.addEventListener('click', () => this.showTagPicker());
+        container.appendChild(addTagBtn);
+        
+        // 重新初始化拖拽排序
+        this.initializeTagSortable();
+    }
+    
+    // 获取有序的标签列表
+    getOrderedTags() {
+        if (this.tabsOrder.length === 0) {
+            return this.availableTags;
+        }
+        
+        const orderedTags = [];
+        const remainingTags = [...this.availableTags];
+        
+        // 按保存的顺序添加标签
+        this.tabsOrder.forEach(tagKey => {
+            const tagIndex = remainingTags.findIndex(tag => tag.key === tagKey);
+            if (tagIndex !== -1) {
+                orderedTags.push(remainingTags.splice(tagIndex, 1)[0]);
             }
-            tabElement.dataset.group = tag.key;
-            tabElement.textContent = tag.name;
-            
-            tabElement.addEventListener('click', () => this.filterByTag(tag.key));
-            
-            container.appendChild(tabElement);
         });
         
-        // 应用保存的标签顺序
-        this.applyTagOrder();
+        // 添加剩余的标签（新添加的标签）
+        if (remainingTags.length > 0) {
+            orderedTags.push(...remainingTags);
+            // 同时更新tabsOrder以包含新标签
+            remainingTags.forEach(tag => {
+                this.tabsOrder.push(tag.key);
+            });
+            // 保存更新后的顺序
+            this.saveTabsOrder();
+        }
+        
+        return orderedTags;
+    }
+    
+    // 显示标签选择器
+    showTagPicker() {
+        const modal = document.getElementById('tag-picker-modal');
+        const tagNameInput = document.getElementById('tag-name');
+        const tagKeyInput = document.getElementById('tag-key');
+        
+        // 清空表单
+        tagNameInput.value = '';
+        tagKeyInput.value = '';
+        
+        // 清除错误信息
+        document.getElementById('tag-name-error').textContent = '';
+        document.getElementById('tag-key-error').textContent = '';
+        
+        // 显示模态框
+        modal.style.display = 'flex';
+        
+        // 聚焦到标签名称输入框
+        setTimeout(() => {
+            tagNameInput.focus();
+        }, 100);
+        
+        // 绑定事件监听器（如果还未绑定）
+        this.bindTagPickerEvents();
+    }
+    
+    // 绑定标签选择器事件
+    bindTagPickerEvents() {
+        const modal = document.getElementById('tag-picker-modal');
+        const closeBtn = document.getElementById('close-tag-picker-btn');
+        const cancelBtn = document.getElementById('cancel-tag-picker-btn');
+        const form = document.getElementById('tag-picker-form');
+        const tagNameInput = document.getElementById('tag-name');
+        const tagKeyInput = document.getElementById('tag-key');
+        
+        // 避免重复绑定
+        if (modal.dataset.eventsBound) return;
+        modal.dataset.eventsBound = 'true';
+        
+        // 关闭按钮
+        closeBtn?.addEventListener('click', () => this.hideTagPicker());
+        cancelBtn?.addEventListener('click', () => this.hideTagPicker());
+        
+        // 点击背景关闭
+        modal?.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                this.hideTagPicker();
+            }
+        });
+        
+        // 表单提交
+        form?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleAddNewTag(modal);
+        });
+        
+        // 标签名称输入时自动生成标识
+        tagNameInput?.addEventListener('input', () => {
+            const name = tagNameInput.value.trim();
+            if (name && !tagKeyInput.value) {
+                tagKeyInput.value = this.generateTagKey(name);
+            }
+        });
+    }
+    
+    // 隐藏标签选择器
+    hideTagPicker() {
+        const modal = document.getElementById('tag-picker-modal');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.remove('show');
+        }
+    }
+    
+    // 生成标签标识
+    generateTagKey(name) {
+        // 简单的标识生成逻辑
+        const keyMap = {
+            '工作': 'work',
+            '学习': 'study', 
+            '开发': 'dev',
+            '设计': 'design',
+            '生活': 'life',
+            '娱乐': 'entertainment',
+            '技术': 'tech',
+            '新闻': 'news',
+            '购物': 'shopping',
+            '社交': 'social',
+            '游戏': 'game',
+            '音乐': 'music',
+            '视频': 'video',
+            '阅读': 'reading'
+        };
+        
+        if (keyMap[name]) {
+            return keyMap[name];
+        }
+        
+        // 转换为拼音或英文小写
+        return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
+    
+    // 处理添加新标签
+    async handleAddNewTag(modal) {
+        const nameInput = modal.querySelector('#new-tag-name');
+        const keyInput = modal.querySelector('#new-tag-key');
+        const nameError = modal.querySelector('#tag-name-error');
+        const keyError = modal.querySelector('#tag-key-error');
+        
+        // 清除之前的错误
+        nameError.textContent = '';
+        keyError.textContent = '';
+        
+        const name = nameInput.value.trim();
+        const key = keyInput.value.trim().toLowerCase();
+        
+        // 验证输入
+        let hasError = false;
+        
+        if (!name) {
+            nameError.textContent = '请输入标签名称';
+            hasError = true;
+        } else if (name.length > 10) {
+            nameError.textContent = '标签名称不能超过10个字符';
+            hasError = true;
+        }
+        
+        if (!key) {
+            keyError.textContent = '请输入标签标识';
+            hasError = true;
+        } else if (!/^[a-z0-9]+$/.test(key)) {
+            keyError.textContent = '标识只能包含英文字母和数字';
+            hasError = true;
+        } else if (this.availableTags.some(tag => tag.key === key)) {
+            keyError.textContent = '该标识已存在';
+            hasError = true;
+        }
+        
+        if (hasError) return;
+        
+        try {
+            // 添加新标签
+            const newTag = {
+                key: key,
+                name: name,
+                removable: true
+            };
+            
+            this.availableTags.push(newTag);
+            this.saveAvailableTags();
+            
+            // 更新标签筛选器
+            this.updateTagFilter();
+            
+            // 自动切换到新标签
+            this.filterByTag(key);
+            
+            // 关闭模态框
+            modal.remove();
+            
+            this.showToast(`标签"${name}"添加成功`, 'success');
+        } catch (error) {
+            console.error('添加标签失败:', error);
+            this.showToast('添加标签失败，请重试', 'error');
+        }
+    }
+    
+    // 导出标签数据
+    exportTagsData() {
+        try {
+            const exportData = {
+                availableTags: this.availableTags,
+                tabsOrder: this.tabsOrder,
+                currentTag: this.currentTag,
+                exportTime: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `dashtab-tags-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            
+            URL.revokeObjectURL(link.href);
+            this.showToast('标签数据导出成功', 'success');
+        } catch (error) {
+            console.error('导出标签数据失败:', error);
+            this.showToast('导出失败，请重试', 'error');
+        }
+    }
+    
+    // 导入标签数据
+    importTagsData() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        
+        input.onchange = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importData = JSON.parse(e.target.result);
+                    this.handleImportData(importData);
+                } catch (error) {
+                    console.error('解析导入文件失败:', error);
+                    this.showToast('文件格式错误，请选择有效的JSON文件', 'error');
+                }
+            };
+            reader.readAsText(file);
+        };
+        
+        input.click();
+    }
+    
+    // 处理导入的数据
+    handleImportData(importData) {
+        try {
+            // 验证数据格式
+            if (!importData.availableTags || !Array.isArray(importData.availableTags)) {
+                throw new Error('无效的标签数据格式');
+            }
+            
+            // 确认导入
+            const confirmImport = confirm(
+                `确定要导入标签数据吗？\n` +
+                `将导入 ${importData.availableTags.length} 个标签\n` +
+                `当前数据将被覆盖，此操作不可撤销！`
+            );
+            
+            if (!confirmImport) return;
+            
+            // 备份当前数据
+            const backup = {
+                availableTags: [...this.availableTags],
+                tabsOrder: [...this.tabsOrder],
+                currentTag: this.currentTag
+            };
+            
+            try {
+                // 导入新数据
+                this.availableTags = importData.availableTags || [];
+                this.tabsOrder = importData.tabsOrder || [];
+                
+                // 验证导入的标签
+                this.availableTags = this.availableTags.filter(tag => 
+                    tag && tag.key && tag.name && typeof tag.key === 'string' && typeof tag.name === 'string'
+                );
+                
+                // 保存到localStorage
+                this.saveAvailableTags();
+                this.saveTabsOrder();
+                
+                // 设置当前标签
+                const importedCurrentTag = importData.currentTag;
+                if (importedCurrentTag && this.availableTags.some(tag => tag.key === importedCurrentTag)) {
+                    this.currentTag = importedCurrentTag;
+                    localStorage.setItem('dashTabCurrentTag', this.currentTag);
+                } else {
+                    this.currentTag = 'all';
+                    localStorage.setItem('dashTabCurrentTag', 'all');
+                }
+                
+                // 更新UI
+                this.updateTagFilter();
+                this.filterByTag(this.currentTag);
+                
+                this.showToast(`成功导入 ${this.availableTags.length} 个标签`, 'success');
+            } catch (error) {
+                // 恢复备份数据
+                this.availableTags = backup.availableTags;
+                this.tabsOrder = backup.tabsOrder;
+                this.currentTag = backup.currentTag;
+                
+                this.saveAvailableTags();
+                this.saveTabsOrder();
+                localStorage.setItem('dashTabCurrentTag', this.currentTag);
+                
+                throw error;
+            }
+        } catch (error) {
+            console.error('导入标签数据失败:', error);
+            this.showToast('导入失败：' + error.message, 'error');
+        }
+    }
+    
+    // 重置标签数据
+    resetTagsData() {
+        const confirmReset = confirm(
+            '确定要重置所有标签数据吗？\n' +
+            '这将删除所有自定义标签并恢复默认设置\n' +
+            '此操作不可撤销！'
+        );
+        
+        if (!confirmReset) return;
+        
+        try {
+            // 重置为默认标签
+            this.availableTags = [
+                { key: 'all', name: '全部', removable: false },
+                { key: 'work', name: '工作', removable: false },
+                { key: 'study', name: '学习', removable: false },
+                { key: 'dev', name: '开发', removable: false },
+                { key: 'design', name: '设计', removable: false },
+                { key: 'life', name: '生活', removable: false },
+                { key: 'entertainment', name: '娱乐', removable: false }
+            ];
+            
+            this.tabsOrder = [];
+            this.currentTag = 'all';
+            
+            // 保存到localStorage
+            this.saveAvailableTags();
+            this.saveTabsOrder();
+            localStorage.setItem('dashTabCurrentTag', 'all');
+            
+            // 更新UI
+            this.updateTagFilter();
+            this.filterByTag('all');
+            
+            this.showToast('标签数据已重置为默认设置', 'success');
+        } catch (error) {
+            console.error('重置标签数据失败:', error);
+            this.showToast('重置失败，请重试', 'error');
+        }
     }
     
     // 显示消息提示
