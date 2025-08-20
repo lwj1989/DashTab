@@ -37,10 +37,10 @@
 
 /* CSS变量定义 - macOS风格配色 */
 :root {
-    /* macOS深色模式配色 */
-    --bg-primary: #1c1c1e;
-    --bg-secondary: #2c2c2e;
-    --card-bg: #3a3a3c;
+    /* macOS深色模式配色 - 使用自定义深色背景 */
+    --bg-primary: #1A1B1D;
+    --bg-secondary: #242529;
+    --card-bg: #2E2F33;
     --text-primary: #ffffff;
     --text-secondary: #8e8e93;
     --accent: #007aff;
@@ -1603,9 +1603,9 @@ body {
 /* 深色模式优化 */
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg-primary: #1e1e2e;
-        --bg-secondary: #252537;
-        --card-bg: #2d2d44;
+        --bg-primary: #1A1B1D;
+        --bg-secondary: #242529;
+        --card-bg: #2E2F33;
         --text-primary: #e0def4;
         --text-secondary: #908caa;
     }
