@@ -83,6 +83,76 @@ class DashTab {
         }
     }
     
+    // 数据验证函数：验证网站对象的完整性和有效性
+    validateSiteObject(site) {
+        if (!site) {
+            return { valid: false, error: '网站对象为空' };
+        }
+        
+        if (!site.id) {
+            return { valid: false, error: '网站缺少ID' };
+        }
+        
+        if (!site.name || typeof site.name !== 'string' || site.name.trim() === '') {
+            return { valid: false, error: '网站名称无效' };
+        }
+        
+        if (!site.url || typeof site.url !== 'string' || site.url.trim() === '') {
+            return { valid: false, error: '网站URL无效' };
+        }
+        
+        // 验证URL格式
+        try {
+            new URL(site.url);
+        } catch (e) {
+            return { valid: false, error: '网站URL格式无效' };
+        }
+        
+        return { valid: true };
+    }
+    
+    // 清理和验证网站数据数组
+    cleanAndValidateSites() {
+        if (!Array.isArray(this.data.sites)) {
+            console.warn('网站数据不是数组，重置为空数组');
+            this.data.sites = [];
+            return;
+        }
+        
+        const originalCount = this.data.sites.length;
+        const validSites = [];
+        const invalidSites = [];
+        
+        this.data.sites.forEach((site, index) => {
+            const validation = this.validateSiteObject(site);
+            if (validation.valid) {
+                validSites.push(site);
+            } else {
+                console.warn(`发现无效网站对象 (索引 ${index}):`, validation.error, site);
+                invalidSites.push({ site, error: validation.error, index });
+            }
+        });
+        
+        // 更新网站数组为有效的网站
+        this.data.sites = validSites;
+        
+        // 重新整理order属性
+        this.data.sites.forEach((site, index) => {
+            site.order = index;
+        });
+        
+        if (invalidSites.length > 0) {
+            console.log(`数据清理完成：移除了 ${invalidSites.length} 个无效网站，保留了 ${validSites.length} 个有效网站`);
+        }
+        
+        return {
+            originalCount,
+            validCount: validSites.length,
+            invalidCount: invalidSites.length,
+            invalidSites
+        };
+    }
+    
     // 等待库加载完成
     async waitForLibraries() {
         return new Promise((resolve) => {
@@ -159,6 +229,12 @@ class DashTab {
                         this.data = response.data;
                         this.settings = response.settings || this.settings;
 
+                        // 使用新的数据验证函数清理和验证网站数据
+                        const cleanupResult = this.cleanAndValidateSites();
+                        if (cleanupResult && cleanupResult.invalidCount > 0) {
+                            console.log(`数据加载时发现并清理了 ${cleanupResult.invalidCount} 个无效网站`);
+                        }
+
                         // 兼容旧版本数据结构
                         if (this.data.groups && typeof this.data.groups === 'object' && !Array.isArray(this.data.groups)) {
                             console.log('检测到旧版分类数据结构，正在转换...');
@@ -196,6 +272,12 @@ class DashTab {
                 
                 if (savedData) {
                     this.data = JSON.parse(savedData);
+                    // Filter out any null or undefined sites during loading for local storage
+                    if (this.data.sites && Array.isArray(this.data.sites)) {
+                        this.data.sites = this.data.sites.filter(site => site && typeof site === 'object' && site.id && site.name && site.url);
+                    } else {
+                        this.data.sites = [];
+                    }
                 }
                 if (savedSettings) {
                     this.settings = JSON.parse(savedSettings);
@@ -348,7 +430,7 @@ class DashTab {
     }
     
     // 处理排序结束
-    async handleSortEnd(evt) {
+    async handleSortEnd(evt) { // 函数功能：处理拖拽排序结束事件，增强错误处理和数据验证
         try {
             const { oldIndex, newIndex } = evt;
             if (oldIndex === newIndex) return;
@@ -356,18 +438,54 @@ class DashTab {
             // 获取当前筛选的网站列表
             let sites = this.getFilteredSitesForSort();
             
+            // 验证索引有效性
+            if (oldIndex < 0 || oldIndex >= sites.length || newIndex < 0 || newIndex >= sites.length) {
+                console.error('排序索引无效:', { oldIndex, newIndex, sitesLength: sites.length });
+                this.showToast('排序失败：索引无效', 'error');
+                return;
+            }
+            
+            // 验证要移动的网站对象
+            const siteToMove = sites[oldIndex];
+            if (!siteToMove || !siteToMove.id) {
+                console.error('要移动的网站对象无效:', siteToMove);
+                this.showToast('排序失败：网站数据无效', 'error');
+                return;
+            }
+            
             // 移动元素
             const [movedSite] = sites.splice(oldIndex, 1);
             sites.splice(newIndex, 0, movedSite);
             
-            // 更新order属性
+            // 创建新顺序映射表，过滤无效网站
+            const newOrderMap = new Map();
+            let validSiteCount = 0;
+            
             sites.forEach((site, index) => {
-                site.order = index;
+                if (!site || !site.id) {
+                    console.warn('排序过程中发现无效网站对象，已跳过:', { site, index });
+                    return;
+                }
+                newOrderMap.set(site.id, validSiteCount);
+                validSiteCount++;
             });
+
+            // 应用新顺序到原始数据数组
+            let updatedCount = 0;
+            this.data.sites.forEach(site => {
+                if (site && site.id && newOrderMap.has(site.id)) {
+                    site.order = newOrderMap.get(site.id);
+                    updatedCount++;
+                }
+            });
+
+            // 重新排序主数据数组
+            this.data.sites.sort((a, b) => (a.order || 0) - (b.order || 0));
             
             // 保存数据
             await this.saveData();
             
+            console.log(`排序完成，更新了 ${updatedCount} 个网站的顺序`);
             this.showToast('网站顺序已更新', 'success');
         } catch (error) {
             console.error('拖拽排序失败:', error);
@@ -451,11 +569,12 @@ class DashTab {
     }
     
     // 获取用于排序的网站列表
-    getFilteredSitesForSort() {
+    getFilteredSitesForSort() { // 函数功能：获取用于排序的筛选网站列表，修复变量引用错误
+        console.log('this.data.sites before filtering for sort:', this.data.sites);
         if (this.currentCategory === 'all') {
-            return this.data.sites;
+            return this.data.sites.filter(site => site && site.id); // 过滤掉无效的网站对象
         } else {
-            return this.data.sites.filter(site => (site.tag || site.group) === this.currentTag);
+            return this.data.sites.filter(site => site && site.id && (site.tag || site.group) === this.currentCategory);
         }
     }
     
@@ -1034,6 +1153,15 @@ class DashTab {
     
     // 创建网站元素
     createSiteElement(site, isFrequent = false) {
+        // Defensive check: if site is null or undefined, return an empty div or handle gracefully
+        if (!site) {
+            console.warn('Attempted to create site element for null or undefined site.', site);
+            const div = document.createElement('div');
+            div.className = 'site-item error-item'; // Add a class for styling if needed
+            div.textContent = 'Error: Site data missing';
+            return div;
+        }
+
         const div = document.createElement('div');
         div.className = `site-item${isFrequent ? ' frequent' : ''}`;
         div.dataset.siteId = site.id;
@@ -1790,24 +1918,71 @@ class DashTab {
     }
     
     // 删除网站
-    async deleteSite() {
-        if (!this.contextMenuSite) return;
+    async deleteSite() { // 函数功能：删除网站，增强错误处理和数据一致性检查
+        if (!this.contextMenuSite) {
+            console.warn('删除操作失败：未找到要删除的网站对象');
+            this.hideContextMenu();
+            return;
+        }
         
-        if (confirm(`确定要删除网站"${this.contextMenuSite.name}"吗？`)) {
+        // 验证网站对象的有效性
+        if (!this.contextMenuSite.id || !this.contextMenuSite.name) {
+            console.error('删除操作失败：网站对象数据不完整', this.contextMenuSite);
+            this.showToast('删除失败：网站数据不完整', 'error');
+            this.hideContextMenu();
+            return;
+        }
+        
+        const siteToDelete = this.contextMenuSite;
+        const siteName = siteToDelete.name;
+        const siteId = siteToDelete.id;
+        
+        if (confirm(`确定要删除网站"${siteName}"吗？`)) {
             try {
-                // 从数据中移除
-                this.data.sites = this.data.sites.filter(s => s.id !== this.contextMenuSite.id);
+                // 检查网站是否存在于数据中
+                const siteIndex = this.data.sites.findIndex(s => s && s.id === siteId);
+                if (siteIndex === -1) {
+                    console.warn('要删除的网站不存在于数据中:', siteId);
+                    this.showToast('网站不存在，可能已被删除', 'warning');
+                    this.hideContextMenu();
+                    return;
+                }
                 
-                // 删除访问统计
-                delete this.data.visitStats[this.contextMenuSite.id];
+                // 记录删除前的网站数量
+                const beforeCount = this.data.sites.length;
+                
+                // 从数据中移除网站
+                this.data.sites = this.data.sites.filter(s => s && s.id !== siteId);
+                
+                // 验证删除是否成功
+                const afterCount = this.data.sites.length;
+                if (beforeCount === afterCount) {
+                    console.error('删除操作未生效，网站数量未变化');
+                    this.showToast('删除失败：操作未生效', 'error');
+                    this.hideContextMenu();
+                    return;
+                }
+                
+                // 删除访问统计数据
+                if (this.data.visitStats && this.data.visitStats[siteId]) {
+                    delete this.data.visitStats[siteId];
+                }
+                
+                // 重新整理网站顺序，确保order属性连续
+                this.data.sites.forEach((site, index) => {
+                    if (site && site.id) {
+                        site.order = index;
+                    }
+                });
                 
                 // 保存数据
                 await this.saveData();
                 
-                // 重新渲染
+                // 重新渲染界面
                 this.render();
                 
-                this.showToast(`网站"${this.contextMenuSite.name}"已删除`, 'success');
+                console.log(`成功删除网站: ${siteName} (ID: ${siteId})，剩余网站数量: ${afterCount}`);
+                this.showToast(`网站"${siteName}"已删除`, 'success');
                 
             } catch (error) {
                 console.error('删除网站失败:', error);
